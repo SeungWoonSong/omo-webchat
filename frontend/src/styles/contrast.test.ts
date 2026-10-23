@@ -260,7 +260,7 @@ describe("token contrast contracts (WCAG 2.1)", () => {
 
   // v2 contract: the three reading tiers hold the 4.5:1 matrix on every
   // elevation fill and every state fill in both theme scopes. The fourth
-  // tier, --th-faint, is METADATA ONLY: it holds a separate 3.0:1 rule on
+  // tier, --th-faint, is METADATA ONLY: it also holds the 4.5:1 rule on
   // the fills metadata can land on, and the usage allowlist further down
   // restricts it to enumerated metadata selectors.
   const TEXT_TIERS = ["--th-text", "--th-text-dim", "--th-muted"] as const;
@@ -276,6 +276,7 @@ describe("token contrast contracts (WCAG 2.1)", () => {
   const TEXT_BACKGROUNDS = [...ELEVATION_FILLS, ...STATE_FILLS] as const;
   // The fills metadata (timestamps, counts, hints) actually lands on.
   const FAINT_FILLS = [
+    "--th-hover", "--th-active", "--th-surface-user", "--th-surface-overlay",
     "--th-bg", "--th-surface", "--th-surface-composer", "--th-surface-raised",
     "--th-tool-record-surface",
   ] as const;
@@ -299,12 +300,12 @@ describe("token contrast contracts (WCAG 2.1)", () => {
 
   const REQUIRED: readonly ContrastPair[] = [
     ...TEXT_TIERS.flatMap((fg) => TEXT_BACKGROUNDS.map((bg): ContrastPair => ({ fg, bg, ratio: NORMAL_TEXT }))),
-    // The metadata tier holds >=3.0:1 on the fills it can land on.
+    // Metadata and hints now meet the same AA normal-text threshold.
     ...FAINT_FILLS.map(
       (bg): ContrastPair => ({
         fg: "--th-faint",
         bg,
-        ratio: 3,
+        ratio: NORMAL_TEXT,
         note: "--th-faint is METADATA ONLY; the usage allowlist below restricts it to metadata selectors",
       }),
     ),
@@ -434,6 +435,10 @@ describe("token contrast contracts (WCAG 2.1)", () => {
     {
       reason: "The font and type hierarchy is shared by every theme.",
       names: [
+        "--th-type-prose-size", "--th-type-prose-line", "--th-type-prose-tracking",
+        "--th-type-code-size", "--th-type-code-line", "--th-type-code-tracking",
+        "--th-type-header-size", "--th-type-header-line", "--th-type-header-tracking",
+        "--th-type-heading1-size", "--th-type-heading2-size", "--th-type-heading3-size",
         "--th-font-mono", "--th-font-sans", "--th-font-size",
         "--th-type-display-size", "--th-type-display-line", "--th-type-display-tracking",
         "--th-type-title-size", "--th-type-title-line", "--th-type-title-tracking",
@@ -453,7 +458,7 @@ describe("token contrast contracts (WCAG 2.1)", () => {
       names: [
         "--th-space-0", "--th-space-0-5", "--th-space-1", "--th-space-2", "--th-space-3",
         "--th-space-4", "--th-space-5", "--th-space-6", "--th-space-8", "--th-space-9",
-        "--th-space-11", "--th-space-12",
+        "--th-space-11", "--th-space-12", "--th-space-prose",
       ],
     },
     {
@@ -527,6 +532,21 @@ describe("token contrast contracts (WCAG 2.1)", () => {
     expect(failures).toEqual([]);
   });
 
+  it("holds the actual input and composer placeholder paint to AA in both themes", () => {
+    for (const [file, selector, background] of [
+      ["form-controls.css", ".th-input::placeholder", "--th-surface-raised"],
+      ["chat-composer.css", ".th-chat-input textarea::placeholder", "--th-surface-composer"],
+    ] as const) {
+      const css = postcss.parse(readFileSync(`src/styles/${file}`, "utf8"));
+      let foreground = "";
+      css.walkRules(selector, (rule) => {
+        rule.walkDecls("color", (decl) => { foreground = /^var\((--th-[\w-]+)\)$/.exec(decl.value)?.[1] ?? ""; });
+      });
+      expect(foreground).not.toBe("");
+      for (const scope of scopes) expect(pairRatio(scope, foreground, background ?? "")).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   it("retains base running-word contrast and rejects the calibrated overlapping-halo paint", () => {
     const css = postcss.parse(readFileSync("src/styles/activity-shelf.css", "utf8"));
     const declaration = (selector: string, property: string): string => {
@@ -591,7 +611,7 @@ describe("token contrast contracts (WCAG 2.1)", () => {
     expect(isolatedDark).toBeGreaterThanOrEqual(NORMAL_TEXT);
   });
 
-  // --th-faint is the METADATA-ONLY tier (the >=3.0:1 rule above). Every
+  // --th-faint is the METADATA-ONLY tier (the >=4.5:1 rule above). Every
   // selector that paints any property with it must be enumerated here with
   // its metadata role; a new usage fails the allowlist test until it is
   // either classified as metadata or re-tiered to --th-muted/--th-text-dim.

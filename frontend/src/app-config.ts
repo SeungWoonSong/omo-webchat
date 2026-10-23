@@ -71,7 +71,8 @@ export function useAppConfig(): AppConfigValue {
   );
 
   useEffect(() => {
-    document.title = t("app.title");
+    document.title = t("app.name");
+    document.querySelector('meta[name="apple-mobile-web-app-title"]')?.setAttribute("content", t("app.name"));
   }, [t]);
 
   useEffect(() => {

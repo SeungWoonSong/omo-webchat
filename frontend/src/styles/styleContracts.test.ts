@@ -170,6 +170,7 @@ const hasOnlyAllowedSpacingComponents = (value: string): boolean => {
 describe("spacing and elevation contracts", () => {
   it("declares the complete DESIGN.md spacing scale", () => {
     expect(Object.fromEntries(Array.from(tokens.matchAll(/(--th-space-[\w-]+):\s*([^;]+);/g), (match) => [match[1], match[2]?.trim()]))).toEqual({
+      "--th-space-prose": "0.75em",
       "--th-space-0": "0",
       "--th-space-0-5": "2px",
       "--th-space-1": "4px",
@@ -771,8 +772,8 @@ describe("chat reading rhythm and tool width contracts", () => {
     expect(chatPane).toMatch(/--th-chat-max:\s*760px/);
     expect(chatTranscript).toMatch(/\.th-chat-row--user\s*\{[^}]*justify-content:\s*flex-end/);
     const base = chatTranscript.match(/\.th-chat-msg\s*\{([^}]*)\}/)?.[1] ?? "";
-    expect(base).toMatch(/font-size:\s*var\(--th-type-body-size\)/);
-    expect(base).toMatch(/line-height:\s*var\(--th-type-body-line\)/);
+    expect(base).toMatch(/font-size:\s*var\(--th-type-prose-size\)/);
+    expect(base).toMatch(/line-height:\s*var\(--th-type-prose-line\)/);
   });
 
   it("does not draw an inset focus ring along chat pane edges", () => {
@@ -785,8 +786,8 @@ describe("chat reading rhythm and tool width contracts", () => {
     const preview = toolCard.match(/\.th-tool-preview\s*\{([^}]*)\}/)?.[1] ?? "";
     expect(preview).toMatch(/font-size:\s*var\(--th-type-label-size\)/);
     const body = toolCard.match(/\.th-tool-body\s*\{([^}]*)\}/)?.[1] ?? "";
-    expect(body).toMatch(/font-size:\s*var\(--th-type-secondary-size\)/);
-    expect(body).toMatch(/line-height:\s*var\(--th-type-secondary-line\)/);
+    expect(body).toMatch(/font-size:\s*var\(--th-type-code-size\)/);
+    expect(body).toMatch(/line-height:\s*var\(--th-type-code-line\)/);
   });
 
   it("caps the tool output region at min(360px, 45dvh) with internal scrolling", () => {
@@ -976,8 +977,8 @@ describe("sidebar density and top-bar hierarchy contracts", () => {
 
   it("anchors the top bar with a Secondary/emphasize title and Label metadata", () => {
     const name = termhead.match(/\.th-termhead-name\s*\{([^}]*)\}/)?.[1] ?? "";
-    expect(name).toMatch(/font-size:\s*var\(--th-type-secondary-size\)/);
-    expect(name).toMatch(/font-weight:\s*var\(--th-weight-emphasize\)/);
+    expect(name).toMatch(/font-size:\s*var\(--th-type-header-size\)/);
+    expect(name).toMatch(/font-weight:\s*var\(--th-weight-announce\)/);
     // The cwd is no longer rendered as visible header text (G6); it travels
     // with the session name as its title tooltip.
     expect(termhead).not.toMatch(/\.th-termhead-path/);

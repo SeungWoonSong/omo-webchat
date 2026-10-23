@@ -535,7 +535,6 @@ function ChatPaneContent({
           <IconMenu size={16} />
         </button>
         <span className="th-termhead-name" title={chatSession.cwd}>{sessionDisplayName}</span>
-        <span className="th-provider-badge" data-provider={chatSession.provider}>{chatSession.provider}</span>
         <div className="th-termhead-actions">
           <button
             type="button"

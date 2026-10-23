@@ -80,6 +80,7 @@
 
 .th-chat-input textarea::placeholder {
   color: var(--th-muted);
+  opacity: 1;
 }
 
 /* Send and Stop share one fixed circular slot; only the glyph swaps, so the

@@ -73,7 +73,7 @@ contrast rules in the theme contract. `--th-bg` and `--th-accent` are pinned.
 | `--th-text` | `#ededf0` | `#18181b` | Primary text |
 | `--th-text-dim` | `#c4c4cc` | `#3f3f46` | Secondary text |
 | `--th-muted` | `#a1a1aa` | `#5f5f68` | Muted text; 4.5:1 on every fill including hover and active |
-| `--th-faint` | `#71717a` | `#8b8b94` | Metadata only; 3.0:1, allowlist enforced by test |
+| `--th-faint` | `#a0a0a9` | `#62626b` | Metadata only; 4.5:1, allowlist enforced by test |
 | `--th-disabled-fg`, `--th-disabled-bg` | derived | derived | Disabled text and fill, derived from tested pairs |
 | `--th-accent` | `#8b7cf6` | `#6d5bd0` | Agent-alive glyphs, spinners, strokes and focus treatment; running text uses `--th-accent-ink` |
 | `--th-accent-hover` | `#9d90f8` | `#5b49c2` | Accent hover |
@@ -108,8 +108,8 @@ status cues against the cool monochrome base, not extra brand accents.
 
 Text tiers are binding: `--th-text`, `--th-text-dim`, and `--th-muted` meet
 4.5:1 on every fill in both themes, hover and active included.
-`--th-faint` is metadata-only at 3.0:1 on bg, surface, composer, raised, and
-tool fills; the contract test enumerates its allowed selectors and fails any
+`--th-faint` is metadata-only at 4.5:1 on bg, surface, composer, raised, user,
+overlay, hover, active, and tool fills; the contract test enumerates its allowed selectors and fails any
 faint text outside the allowlist. Status hues used as text keep their hue
 identity but are lightened or darkened as needed to pass the same matrix.
 Contrast wins over reference fidelity everywhere these two disagree; the
@@ -159,7 +159,7 @@ attachments, and a 24px modal panel inset by 12px gets 12px inner radii.
 ## Type scale
 
 `--th-font-size` is the user-controlled base for the type tiers below, except
-for compact phone DAG Graph node titles and state words (fixed at 11px). Define
+for compact phone DAG Graph node titles and state words (fixed at 13px). Define
 the size, line-height, and tracking values below once in `tokens.css` as
 `--th-type-<tier>-size`, `--th-type-<tier>-line`, and
 `--th-type-<tier>-tracking`; component styles consume those tokens as a complete
@@ -174,32 +174,41 @@ must not substitute ad hoc `500`, `600`, or `700` values.
 | Title | `calc(var(--th-font-size) * 1.2857)` | 590 | 1.25 | `-0.018em` | Modal and content-section titles |
 | Input | `calc(var(--th-font-size) * 1.1429)` | 400 | 1.4 | `-0.008em` | Composer text and editable primary input |
 | Body | `var(--th-font-size)` | 400 | 1.65 | `-0.005em` | Conversation prose and explanatory copy |
-| Secondary | `calc(var(--th-font-size) * 0.9286)` | 400 | 1.45 | `0` | Dense navigation and execution output |
-| Label | `calc(var(--th-font-size) * 0.8571)` | 510 | 1.35 | `0.01em` | Control, field, and compact block labels |
-| Micro | `calc(var(--th-font-size) * 0.7857)` | 510 | 1.3 | `0.02em` | Status and terse metadata only |
+| Secondary | `calc(var(--th-font-size) * 1)` | 400 | 1.45 | `0` | Dense navigation and execution output |
+| Label | `calc(var(--th-font-size) * 1)` | 510 | 1.35 | `0.01em` | Control, field, and compact block labels |
+| Micro | `calc(var(--th-font-size) * 0.9286)` | 510 | 1.3 | `0.02em` | Status and terse metadata only |
 
 The base is user-owned and never restyled globally: app-config applies the
-user's font-size setting inline on `<html>` (default 13px, clamped 10-24),
+user's font-size setting inline on `<html>` (default 14px, clamped 10-24),
 while the `--th-font-size: 14px` declared in `tokens.css` is only the
-pre-hydration fallback. The approved 14px-vs-15px prose comparison resolves
-through the tier system, not a base bump: raising the fallback or the app
-default would resize every chrome surface at once and fight the user's own
-scaling. A 15px user setting must move every type tier, including the DAG List
-view and desktop/tablet Graph text, except the fixed 11px compact phone Graph
-titles and state words. The scaling evidence scenario pins the tier behavior.
+pre-hydration fallback. The default UI base is 14px; prose and composer are
+16px, header titles 15px, and captions/code 13px. Existing saved preferences
+remain user-owned and all tiers scale proportionally.
 
-The sans stack is Pretendard Variable, vendored as the dynamic-subset woff2
-build with `font-display: swap`. Pretendard carries Korean and Latin in one
-family with exact intermediate weights, so the 510 and 590 tiers resolve to
-real faces instead of browser-synthesized approximations and Korean text no
-longer falls back to an OS-dependent rendering. All user-readable text uses
-`--th-font-sans`; the body tier line-height is 1.65. The mono
+| Additional tier | Factor | Line-height | Tracking | Job |
+| --- | --- | --- | --- | --- |
+| Prose | 1.1429 | 1.7 | 0 | User/assistant messages |
+| Code | 0.9286 | 1.55 | 0 | Monospace tool output and code |
+| Header | 1.0714 | 1.4 | 0 | Chat title, announce weight |
+| Heading1/2/3 | 1.7143 / 1.4286 / 1.2857 | inherited prose/title | inherited | Message headings |
+
+The transcript lane remains centered at 760px with 0.75em paragraph spacing.
+Korean prose and UI labels keep words together with strict line breaking;
+long URLs/paths can wrap anywhere. Tables and code scroll locally.
+Metadata and placeholders now also hold 4.5:1 in both themes. Compact phone
+DAG captions have a 13px cap/fixed graph floor instead of 11px.
+
+The sans stack prefers locally installed Pretendard, Apple SD Gothic Neo,
+Noto Sans KR, and Malgun Gothic before the existing vendored Pretendard Variable
+fallback and system-ui. No font assets or web font dependencies are added.
+All user-readable text uses `--th-font-sans`; UI body line-height is 1.65 and
+message prose line-height is 1.7. The mono
 stack is restricted to code, paths, tool input and output, and identifiers. It
 never sets UI labels, counts, badges, buttons, or chrome. No UI label uses
 `text-transform: uppercase`; hierarchy comes from weight, size, and colour,
 never from case. Component CSS must use a named tier for every text
 `font-size`, never a raw `px`, `rem`, or `em` font size, except the compact phone
-DAG Graph node titles and state words, fixed at 11px regardless of the user's
+DAG Graph node titles and state words, fixed at 13px regardless of the user's
 font-size setting. This rule makes a change to `--th-font-size` move the type
 tiers rather than only inherited body text; the compact Graph is an
 at-a-glance overview, and the setting-scaled List is its readable alternative.
@@ -351,8 +360,8 @@ intended background, and enforces contrast in both themes:
   `--th-surface-overlay`, `--th-hover`, `--th-active`, the tool material, and
   every status background. There is no 3:1 large-text exception because the
   same semantic tokens can appear at Label or Micro size.
-- `--th-faint` is metadata-only and held to 3.0:1 on the bg, surface,
-  composer, raised, and tool fills. The contract test enumerates the allowed
+- `--th-faint` is metadata-only and held to 4.5:1 on the bg, surface,
+  composer, raised, user, overlay, hover, active, and tool fills. The contract test enumerates the allowed
   faint selectors; faint text anywhere outside that allowlist fails the build.
 - `--th-accent-fg` holds 4.5:1 on `--th-accent-solid` and
   `--th-accent-solid-hover`.

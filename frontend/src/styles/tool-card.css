@@ -310,9 +310,9 @@
   padding: var(--th-space-3);
   color: var(--th-text-dim);
   font-family: var(--th-font-mono);
-  font-size: var(--th-type-secondary-size);
-  line-height: var(--th-type-secondary-line);
-  letter-spacing: var(--th-type-secondary-tracking);
+  font-size: var(--th-type-code-size);
+  line-height: var(--th-type-code-line);
+  letter-spacing: var(--th-type-code-tracking);
   overflow-wrap: anywhere;
   white-space: pre-wrap;
   word-break: break-word;
@@ -339,9 +339,9 @@
   margin: 0;
   color: var(--th-text-dim);
   font-family: var(--th-font-mono);
-  font-size: var(--th-type-secondary-size);
-  line-height: var(--th-type-secondary-line);
-  letter-spacing: var(--th-type-secondary-tracking);
+  font-size: var(--th-type-code-size);
+  line-height: var(--th-type-code-line);
+  letter-spacing: var(--th-type-code-tracking);
   /* <pre> defaults to white-space: pre in the UA sheet, which overrides the
      body's inherited pre-wrap and hard-clips long lines; restate it here so
      command and output text preserves whitespace yet wraps (DESIGN.md). */

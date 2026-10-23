@@ -69,7 +69,7 @@ export function persistFont(id: FontId): void {
 
 export const FONT_SIZE_MIN = 10;
 export const FONT_SIZE_MAX = 24;
-export const FONT_SIZE_DEFAULT = 13;
+export const FONT_SIZE_DEFAULT = 14;
 
 const SIZE_STORAGE_KEY = "th-font-size";
 

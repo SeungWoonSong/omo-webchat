@@ -133,6 +133,7 @@
 
 .th-input::placeholder {
   color: var(--th-faint);
+  opacity: 1;
 }
 
 .th-input:focus {

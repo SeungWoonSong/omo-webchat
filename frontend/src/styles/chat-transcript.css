@@ -315,14 +315,15 @@
 }
 
 .th-chat-msg {
+  line-break: strict;
   width: 100%;
   min-width: 0;
   max-width: 80%;
   padding: var(--th-space-2) var(--th-space-3);
   color: var(--th-text);
-  font-size: var(--th-type-body-size);
-  line-height: var(--th-type-body-line);
-  letter-spacing: var(--th-type-body-tracking);
+  font-size: var(--th-type-prose-size);
+  line-height: var(--th-type-prose-line);
+  letter-spacing: var(--th-type-prose-tracking);
   /* Declared, not inherited: the read weight every role starts from, so the
      user bubble's emphasize weight below is a real contrast, not a default. */
   font-weight: var(--th-weight-read);
@@ -552,9 +553,9 @@
 
 .th-chat-error {
   color: var(--th-error);
-  font-size: var(--th-type-body-size);
-  line-height: var(--th-type-body-line);
-  letter-spacing: var(--th-type-body-tracking);
+  font-size: var(--th-type-prose-size);
+  line-height: var(--th-type-prose-line);
+  letter-spacing: var(--th-type-prose-tracking);
   overflow-wrap: anywhere;
   white-space: pre-wrap;
   user-select: text;
@@ -619,8 +620,8 @@
 }
 
 .th-chat-markdown p {
-  margin: 0 0 var(--th-space-3);
-  line-height: var(--th-type-body-line);
+  margin: 0 0 var(--th-space-prose);
+  line-height: var(--th-type-prose-line);
   overflow-wrap: anywhere;
 }
 
@@ -631,30 +632,32 @@
 .th-chat-markdown h5,
 .th-chat-markdown h6 {
   margin: var(--th-space-4) 0 var(--th-space-2);
-  font-size: var(--th-type-body-size);
-  line-height: var(--th-type-body-line);
-  letter-spacing: var(--th-type-body-tracking);
+  font-size: var(--th-type-prose-size);
+  line-height: var(--th-type-prose-line);
+  letter-spacing: var(--th-type-prose-tracking);
   font-weight: var(--th-weight-announce);
 }
 
-/* h1 alone steps up to the Title tier; lower headings keep Body size at the
-   announce weight, per DESIGN.md's markdown rule. */
+/* Message headings scale with prose; lower levels retain its announce weight. */
 .th-chat-markdown h1 {
-  font-size: var(--th-type-title-size);
+  font-size: var(--th-type-heading1-size);
   line-height: var(--th-type-title-line);
   letter-spacing: var(--th-type-title-tracking);
 }
 
+.th-chat-markdown h2 { font-size: var(--th-type-heading2-size); }
+.th-chat-markdown h3 { font-size: var(--th-type-heading3-size); }
+
 .th-chat-markdown ul,
 .th-chat-markdown ol {
-  margin: 0 0 var(--th-space-3);
+  margin: 0 0 var(--th-space-prose);
   padding-left: var(--th-space-6);
 }
 
 .th-chat-markdown li { margin: var(--th-space-1) 0; }
 
 .th-chat-markdown pre {
-  margin: 0 0 var(--th-space-3);
+  margin: 0 0 var(--th-space-prose);
   padding: var(--th-space-2) var(--th-space-3);
   overflow-x: auto;
   border-radius: var(--th-radius-sm);
@@ -666,9 +669,9 @@
   border-radius: calc(var(--th-radius-sm) - 2px);
   background: var(--th-hover);
   font-family: var(--th-font-mono);
-  font-size: var(--th-type-secondary-size);
-  line-height: var(--th-type-secondary-line);
-  letter-spacing: var(--th-type-secondary-tracking);
+  font-size: var(--th-type-code-size);
+  line-height: var(--th-type-code-line);
+  letter-spacing: var(--th-type-code-tracking);
 }
 
 .th-chat-markdown pre code {
@@ -676,14 +679,14 @@
   border: 0;
   background: transparent;
   font-family: var(--th-font-mono);
-  font-size: var(--th-type-secondary-size);
-  line-height: var(--th-type-secondary-line);
-  letter-spacing: var(--th-type-secondary-tracking);
+  font-size: var(--th-type-code-size);
+  line-height: var(--th-type-code-line);
+  letter-spacing: var(--th-type-code-tracking);
   white-space: pre;
 }
 
 .th-chat-markdown blockquote {
-  margin: 0 0 var(--th-space-3);
+  margin: 0 0 var(--th-space-prose);
   padding: var(--th-space-1) 0 var(--th-space-1) var(--th-space-4);
   border-left: 3px solid var(--th-border);
   color: var(--th-muted);
@@ -702,7 +705,10 @@
 }
 
 .th-chat-markdown table {
-  margin: 0 0 var(--th-space-3);
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 0 0 var(--th-space-prose);
   border-collapse: collapse;
   width: 100%;
   font-size: var(--th-type-secondary-size);

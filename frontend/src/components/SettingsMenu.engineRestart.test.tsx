@@ -72,7 +72,7 @@ describe("SettingsMenu engine restart item", () => {
     const onOpenEngineRestart = vi.fn();
     await renderMenu(onOpenStats, onOpenEngineRestart);
     openPanel();
-    const restartItem = panelItems().find((item) => item.textContent === "Restart omo engine");
+    const restartItem = panelItems().find((item) => item.textContent === "Restart engine");
     expect(restartItem).not.toBeUndefined();
     act(() => {
       restartItem!.click();
