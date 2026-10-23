@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/DevNewbie1826/omo-webchat/internal/accounts"
 	"github.com/DevNewbie1826/omo-webchat/internal/auth"
 	"github.com/DevNewbie1826/omo-webchat/internal/config"
 	"github.com/DevNewbie1826/omo-webchat/internal/cursorstore"
@@ -338,6 +339,9 @@ func Run(ctx context.Context, cfg *config.Config, logger *slog.Logger, onReady f
 		ChatVersion: func(id string) uint64 { return apiServer.chatLifecycleVersion(id) }})
 	sessions := auth.NewSessionStore(ctx, cfg.Password, logger)
 	apiServer = New(ctx, cfg, cursors, sessions, manager, bridge, logger)
+	apiServer.accounts = accounts.New(ctx, cfg.Root, func(ctx context.Context) (accounts.Engine, error) {
+		return omorpc.DialWithConfig(ctx, ensured.Client.SocketPath(), omorpc.Config{NoReconnect: true, EventBuffer: 128})
+	})
 	stopWatcher := apiServer.startRPCWatcher(ensured.Client)
 	defer stopWatcher()
 	apiServer.queue = queue

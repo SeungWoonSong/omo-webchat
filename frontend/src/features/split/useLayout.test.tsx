@@ -35,6 +35,7 @@ function LayoutProbe({
 }
 
 function pendingTransitions(): Array<() => unknown> {
+	vi.useFakeTimers();
 	const callbacks: Array<() => unknown> = [];
 	const never = new Promise<void>(() => undefined);
 	document.startViewTransition = ((callback: ViewTransitionUpdateCallback | StartViewTransitionOptions) => {
@@ -75,6 +76,11 @@ describe("useLayout assignment", () => {
 		await act(async () => {
 			root.unmount();
 		});
+		// Finish transition-name cleanup before jsdom removes document.
+		if (vi.isFakeTimers()) {
+			vi.runOnlyPendingTimers();
+			vi.useRealTimers();
+		}
 		container.remove();
 		vi.unstubAllGlobals();
 		Reflect.deleteProperty(document, "startViewTransition");

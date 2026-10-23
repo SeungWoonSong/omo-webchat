@@ -15,6 +15,7 @@ import (
 	"sync"
 
 	"github.com/DevNewbie1826/omo-webchat/frontend"
+	"github.com/DevNewbie1826/omo-webchat/internal/accounts"
 	"github.com/DevNewbie1826/omo-webchat/internal/auth"
 	"github.com/DevNewbie1826/omo-webchat/internal/config"
 	"github.com/DevNewbie1826/omo-webchat/internal/cursorstore"
@@ -42,6 +43,7 @@ type Server struct {
 	bridge     http.Handler
 	logger     *slog.Logger
 	ctx        context.Context
+	accounts   *accounts.Service
 
 	// Installation updates and engine restarts replace the same binary, so
 	// both endpoints single-flight on one mutex and never overlap.
@@ -77,6 +79,11 @@ func (s *Server) Handler() http.Handler {
 	protected := http.NewServeMux()
 	protected.HandleFunc("POST /api/logout", s.handleLogout)
 	protected.HandleFunc("GET /api/auth/check", s.handleAuthCheck)
+	protected.HandleFunc("GET /api/accounts", s.handleAccounts)
+	protected.HandleFunc("POST /api/accounts/{provider}/login", s.handleAccountStart)
+	protected.HandleFunc("GET /api/accounts/logins/{loginId}/events", s.handleAccountEvents)
+	protected.HandleFunc("POST /api/accounts/logins/{loginId}/response", s.handleAccountResponse)
+	protected.HandleFunc("POST /api/accounts/logins/{loginId}/cancel", s.handleAccountCancel)
 	protected.HandleFunc("GET /api/workspaces", s.handleListWorkspaces)
 	protected.HandleFunc("POST /api/workspaces", s.handleCreateWorkspace)
 	protected.HandleFunc("DELETE /api/workspaces/{wsId}", s.handleDeleteWorkspace)

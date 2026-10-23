@@ -1,0 +1,22 @@
+.th-accounts {
+  padding: var(--th-space-6);
+  overflow-y: auto;
+  min-height: 0;
+}
+.th-accounts h2 { padding-right: var(--th-space-8); margin-bottom: var(--th-space-3); }
+.th-accounts-hint { color: var(--th-muted); font-size: var(--th-type-label-size); }
+.th-accounts p { margin-block: var(--th-space-3); }
+.th-accounts-list { list-style: none; padding: 0; margin-block: var(--th-space-4); }
+.th-accounts-list li {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--th-space-2);
+  padding-block: var(--th-space-4);
+  border-bottom: 1px solid var(--th-border-surface);
+}
+.th-accounts-flow { display: flex; flex-direction: column; gap: var(--th-space-3); }
+.th-accounts-flow .th-input { width: 100%; min-width: 0; margin-block: var(--th-space-2); }
+.th-accounts-flow form { display: flex; flex-direction: column; gap: var(--th-space-2); }
+.th-accounts-flow [role="status"] { color: var(--th-muted); }
+.th-accounts [role="alert"] { color: var(--th-danger); }

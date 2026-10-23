@@ -4,6 +4,7 @@ import { useTheme } from "../app-config";
 import { IconActivity, IconPower, IconSettings } from "./icons";
 import { FONT_PRESETS, FONT_SIZE_MAX, FONT_SIZE_MIN } from "../lib/font";
 import { THEME_OPTIONS } from "../lib/theme";
+import { AccountsPanel } from "./AccountsPanel";
 
 export interface SettingsMenuProps {
   readonly onOpenStats: () => void;
@@ -14,6 +15,7 @@ export function SettingsMenu({ onOpenStats, onOpenEngineRestart }: SettingsMenuP
   const { t, lang, setLang, font, setFont, fontSize, setFontSize } = useT();
   const { theme, setTheme } = useTheme();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [accountsOpen, setAccountsOpen] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -130,6 +132,10 @@ export function SettingsMenu({ onOpenStats, onOpenEngineRestart }: SettingsMenuP
           </div>
 
           <div className="th-settings-divider" />
+          <button type="button" className="th-settings-item" onClick={() => {
+            setSettingsOpen(false);
+            setAccountsOpen(true);
+          }}>{t("accounts.title")}</button>
 
           <button
             type="button"
@@ -155,6 +161,7 @@ export function SettingsMenu({ onOpenStats, onOpenEngineRestart }: SettingsMenuP
           </button>
         </div>
       )}
+      {accountsOpen && <AccountsPanel onClose={() => setAccountsOpen(false)} />}
     </div>
   );
 }
