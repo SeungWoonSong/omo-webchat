@@ -61,7 +61,7 @@ describe("SettingsMenu engine restart item", () => {
     await renderMenu(() => undefined, () => undefined);
     openPanel();
     const items = panelItems();
-    expect(items.map((item) => item.textContent)).toEqual(["System status", "Restart omo engine"]);
+    expect(items.map((item) => item.textContent)).toEqual(["Accounts", "System status", "Restart omo engine"]);
   });
 
   it("invokes only the restart callback and closes the panel", async () => {
@@ -83,6 +83,6 @@ describe("SettingsMenu engine restart item", () => {
     window.localStorage.setItem("th-lang", "ko");
     await renderMenu(() => undefined, () => undefined);
     openPanel();
-    expect(panelItems().map((item) => item.textContent)).toEqual(["시스템 상태", "omo 엔진 다시 시작"]);
+    expect(panelItems().map((item) => item.textContent)).toEqual(["계정", "시스템 상태", "omo 엔진 다시 시작"]);
   });
 });
