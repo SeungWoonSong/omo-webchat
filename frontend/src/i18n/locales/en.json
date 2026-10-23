@@ -472,7 +472,7 @@
   "viewer.table": "Table",
   "viewer.zoom": "Actual size",
   "viewer.fit": "Fit to panel",
-  "viewer.unsupported": "Preview unavailable — download",
+  "viewer.unsupported": "Preview is not yet supported for this format.",
   "viewer.size": "Size",
   "viewer.modified": "Modified",
   "viewer.rows": "Showing up to {n} rows · 100 columns",

@@ -46,3 +46,9 @@ export function parseTable(text: string, delimiter: string, limit = 200): string
   if (rows.length < limit && (cell || row.length)) rows.push(row.length < 100 ? [...row, cell] : row);
   return rows;
 }
+
+// Never expose an absolute server path, even if a stale listing is outside the workspace.
+export function workspaceRelativePath(root: string, path: string): string {
+  const base = root.replace(/\/+$/, "");
+  return path === base ? "./" : path.startsWith(`${base}/`) ? path.slice(base.length + 1) : "./";
+}

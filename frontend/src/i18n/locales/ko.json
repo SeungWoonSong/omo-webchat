@@ -472,7 +472,7 @@
   "viewer.table": "표",
   "viewer.zoom": "실제 크기로 확대",
   "viewer.fit": "화면에 맞추기",
-  "viewer.unsupported": "미리보기 미지원 — 다운로드",
+  "viewer.unsupported": "이 형식은 아직 미리보기를 지원하지 않습니다.",
   "viewer.size": "크기",
   "viewer.modified": "수정 시간",
   "viewer.rows": "처음 {n}행 · 100열까지 표시",

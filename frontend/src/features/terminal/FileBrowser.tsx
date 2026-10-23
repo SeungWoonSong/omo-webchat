@@ -17,14 +17,17 @@ export interface FileBrowserProps {
   readonly onClose: () => void;
   readonly notify: (msg: string, kind?: ToastKind) => void;
   readonly width: number;
+  readonly widthCustomized?: boolean;
   readonly onWidthChange: (px: number) => void;
 }
 
-export function FileBrowser({ path, wsId, tmId, onClose, notify, width, onWidthChange }: FileBrowserProps) {
+export function FileBrowser({ path, wsId, tmId, onClose, notify, width, widthCustomized = width !== 320, onWidthChange }: FileBrowserProps) {
   const { t, lang } = useT();
   const FILES_PANEL_MIN = 240;
   const FILES_PANEL_MAX = 720;
   const FILES_PANEL_KEY_STEP = 24;
+  const [manuallyResized, setManuallyResized] = useState(widthCustomized);
+  const [previewWidth, setPreviewWidth] = useState(480);
   const [expanded, setExpanded] = useState(false);
   const [data, setData] = useState<FsList | null>(null);
   const [loading, setLoading] = useState(true);
@@ -117,6 +120,22 @@ export function FileBrowser({ path, wsId, tmId, onClose, notify, width, onWidthC
     restoreFilePathRef.current = null;
   }, [editing]);
 
+  useEffect(() => {
+    const pane = browserRef.current?.parentElement;
+    if (!pane) return;
+    const update = (): void => setPreviewWidth(Math.min(FILES_PANEL_MAX, Math.max(480, pane.clientWidth * 0.45)));
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(pane);
+    return () => observer.disconnect();
+  }, []);
+
+  const displayWidth = editing && !manuallyResized ? previewWidth : width;
+  const resize = (px: number): void => {
+    setManuallyResized(true);
+    onWidthChange(px);
+  };
+
   const requestBrowserClose = (): void => {
     if (!editing) {
       onClose();
@@ -131,7 +150,7 @@ export function FileBrowser({ path, wsId, tmId, onClose, notify, width, onWidthC
     if (!aside) return;
     const right = aside.getBoundingClientRect().right;
     const move = (e: PointerEvent): void => {
-      onWidthChange(Math.min(FILES_PANEL_MAX, Math.max(FILES_PANEL_MIN, Math.round(right - e.clientX))));
+      resize(Math.min(FILES_PANEL_MAX, Math.max(FILES_PANEL_MIN, Math.round(right - e.clientX))));
     };
     const up = (): void => {
       document.removeEventListener("pointermove", move);
@@ -142,17 +161,19 @@ export function FileBrowser({ path, wsId, tmId, onClose, notify, width, onWidthC
   };
 
   const onKeyResize = (ev: React.KeyboardEvent<HTMLDivElement>): void => {
-    if (ev.key === "ArrowLeft") { ev.preventDefault(); onWidthChange(Math.min(FILES_PANEL_MAX, width + FILES_PANEL_KEY_STEP)); }
-    else if (ev.key === "ArrowRight") { ev.preventDefault(); onWidthChange(Math.max(FILES_PANEL_MIN, width - FILES_PANEL_KEY_STEP)); }
+    if (ev.key === "ArrowLeft") { ev.preventDefault(); resize(Math.min(FILES_PANEL_MAX, displayWidth + FILES_PANEL_KEY_STEP)); }
+    else if (ev.key === "ArrowRight") { ev.preventDefault(); resize(Math.max(FILES_PANEL_MIN, displayWidth - FILES_PANEL_KEY_STEP)); }
   };
 
   const locale = lang === "ko" ? "ko-KR" : "en-US";
+
+  const closeButton = <button ref={closeButtonRef} type="button" className="th-btn-icon" title={t("files.close")} aria-label={t("files.close")} onClick={requestBrowserClose}><IconX size={14} /></button>;
 
   return (
     <aside
       ref={browserRef}
       className={`th-files${expanded ? " th-files--expanded" : ""}${dragOver ? " th-files--drag" : ""}`}
-      style={{ "--th-files-width": `${width}px` } as React.CSSProperties}
+      style={{ "--th-files-width": `${displayWidth}px` } as React.CSSProperties}
       onDragOver={(ev) => {
         ev.preventDefault();
         setDragOver(true);
@@ -171,7 +192,8 @@ export function FileBrowser({ path, wsId, tmId, onClose, notify, width, onWidthC
         if (event.key !== "Escape") return;
         event.preventDefault();
         event.stopPropagation();
-        requestBrowserClose();
+        if (expanded) setExpanded(false);
+        else requestBrowserClose();
       }}
       aria-label={t("files.title")}
     >
@@ -180,32 +202,23 @@ export function FileBrowser({ path, wsId, tmId, onClose, notify, width, onWidthC
         role="separator"
         aria-orientation="vertical"
         aria-label={t("files.resize")}
-        aria-valuenow={width}
+        aria-valuenow={displayWidth}
         aria-valuemin={FILES_PANEL_MIN}
         aria-valuemax={FILES_PANEL_MAX}
         tabIndex={0}
         onPointerDown={startResize}
         onKeyDown={onKeyResize}
       />
-      <div className="th-files-head">
+      {!editing && <div className="th-files-head">
         <span className="th-files-title">{t("files.title")}</span>
-        <span className="th-files-path" title={path}>
-          {data?.path ?? path}
-        </span>
-        <button
-          ref={closeButtonRef}
-          type="button"
-          className="th-btn-icon"
-          title={t("files.close")}
-          aria-label={t("files.close")}
-          onClick={requestBrowserClose}
-        >
-          <IconX size={14} />
-        </button>
-      </div>
+        <span className="th-files-path" title="./"><bdi dir="ltr">./</bdi></span>
+        {closeButton}
+      </div>}
       {editing ? (
         <FileViewer
           key={editing.path}
+          workspaceRoot={path}
+          closeButton={closeButton}
           expanded={expanded}
           onExpand={() => setExpanded(value => !value)}
           path={editing.path}
@@ -213,7 +226,7 @@ export function FileBrowser({ path, wsId, tmId, onClose, notify, width, onWidthC
           {...(closeRequest ? { requestClose: closeRequest } : {})}
           onClose={(target) => {
             if (target === "browser") onClose();
-            else setEditing(null);
+            else { setEditing(null); setExpanded(false); }
           }}
           notify={notify}
         />

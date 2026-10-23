@@ -55,7 +55,10 @@ function remarkStandaloneDisplayMath(): (tree: Root) => void {
 export const Markdown = memo(({ text, imageUrl }: { readonly text: string; readonly imageUrl?: (src: string) => string }) => (
   <ReactMarkdown
     remarkPlugins={[remarkGfm, remarkMath, remarkBackslashMath, remarkStandaloneDisplayMath]}
-    components={imageUrl ? { img: ({ src, alt }) => <img src={imageUrl(src ?? "")} alt={alt ?? ""} /> } : undefined}
+    components={imageUrl ? {
+      img: ({ src, alt }) => <img src={imageUrl(src ?? "")} alt={alt ?? ""} />,
+      table: ({ children }) => <div className="th-viewer-table"><table>{children}</table></div>,
+    } : undefined}
     rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}
   >
     {text}

@@ -191,6 +191,7 @@ function ChatPaneContent({
   }, [pane]);
   const [showFiles, setShowFiles] = useState(false);
   const [filePanelWidth, setFilePanelWidth] = useState(320);
+  const [filePanelWidthCustomized, setFilePanelWidthCustomized] = useState(false);
   const [showDisconnect, setShowDisconnect] = useState(false);
   const disconnectTitleId = useId();
   const originalTitleId = useId();
@@ -692,7 +693,8 @@ function ChatPaneContent({
           onClose={() => setShowFiles(false)}
           notify={notify}
           width={filePanelWidth}
-          onWidthChange={setFilePanelWidth}
+          widthCustomized={filePanelWidthCustomized}
+          onWidthChange={width => { setFilePanelWidthCustomized(true); setFilePanelWidth(width); }}
         />
       )}
       {update.dialog}
