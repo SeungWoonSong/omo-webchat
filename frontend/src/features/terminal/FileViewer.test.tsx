@@ -11,7 +11,7 @@ vi.mock("./terminal", () => ({ fsList: vi.fn().mockResolvedValue({ entries: [{ n
 vi.mock("../../lib/api", async importOriginal => ({ ...await importOriginal<typeof import("../../lib/api")>(), apiDownload: vi.fn().mockResolvedValue(undefined) }));
 afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); });
 
-it.each([["README.md", "markdown"], ["a.HTML", "html"], ["a.svg", "image"], ["a.png", "image"], ["a.jpg", "image"], ["a.pdf", "pdf"], ["a.mp3", "audio"], ["a.mp4", "video"], ["a.csv", "table"], ["a.tsv", "table"], ["a.json", "json"], ["a.py", "text"], ["a.docx", "unsupported"], ["a.hwp", "unsupported"], ["a.zip", "unsupported"]])("selects %s preview", (name, kind) => expect(previewKind(name!)).toBe(kind));
+it.each([["README.md", "markdown"], ["a.HTML", "html"], ["a.svg", "image"], ["a.png", "image"], ["a.jpg", "image"], ["a.pdf", "pdf"], ["a.mp3", "audio"], ["a.mp4", "video"], ["a.csv", "table"], ["a.tsv", "table"], ["a.json", "json"], ["a.py", "text"], ["a.docx", "office"], ["a.hwp", "office"], ["a.zip", "unsupported"]])("selects %s preview", (name, kind) => expect(previewKind(name!)).toBe(kind));
 it("resolves relative Markdown images without rewriting remote images", () => {
   expect(markdownImageUrl("/work/docs/readme.md", "../image.png")).toBe("/api/fs/raw?path=%2Fwork%2Fimage.png");
   expect(markdownImageUrl("/work/a #/readme.md", "image%20%23.png")).toBe("/api/fs/raw?path=%2Fwork%2Fa+%23%2Fimage+%23.png");
@@ -51,7 +51,8 @@ it("sandboxes HTML without same-origin and shows unsupported metadata/download",
     await render("sample.pdf");
     expect(host.querySelector("iframe")?.getAttribute("src")).toContain("#view=FitH&navpanes=0");
     expect(host.querySelector("iframe")?.hasAttribute("sandbox")).toBe(false);
-    await render("fake.docx"); expect(host.textContent).toContain("Preview is not yet supported for this format."); expect(host.textContent).toContain("15 B"); expect(host.querySelector("textarea")).toBeNull();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 422 })));
+    await render("fake.docx"); expect(host.textContent).toContain("Conversion failed"); expect(host.textContent).toContain("15 B"); expect(host.querySelector("textarea")).toBeNull();
   } finally { act(() => root.unmount()); host.remove(); }
 });
 
@@ -81,6 +82,7 @@ it("renders a single accessible icon toolbar, relative directory and CSV source 
     act(() => toggle.click()); expect(toggle.getAttribute("aria-pressed")).toBe("true");
     expect(host.querySelector("pre")?.textContent).toBe("hello");
     act(() => toggle.click()); expect(host.querySelector(".th-viewer-table")).not.toBeNull();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 422 })));
     await render("fake.docx");
     expect(host.querySelector(".th-viewer-unsupported .th-btn--primary")).not.toBeNull();
     expect(host.querySelector('.th-viewer-toolbar [aria-label="Edit"]')).toBeNull();
@@ -104,4 +106,28 @@ it.each(["application/pdf", "application/octet-stream"])("verifies PDF with HEAD
     expect(frame).not.toBeNull();
     expect(frame.getAttribute("sandbox")).toBe(contentType === "application/pdf" ? null : "allow-scripts allow-popups allow-forms");
   } finally { act(() => root.unmount()); host.remove(); }
+});
+
+it.each([[200, ""], [501, "Preview tool unavailable"], [413, "File too large"], [422, "Conversion failed"], [504, "Conversion timed out"]])("office conversion state and result %s", async (status, reason) => {
+  vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  let resolve!: (response: Response) => void;
+  const fetchMock = vi.fn().mockReturnValue(new Promise<Response>(done => { resolve = done; }));
+  vi.stubGlobal("fetch", fetchMock);
+  const host = document.createElement("div"); document.body.appendChild(host); const root = createRoot(host);
+  try {
+    await act(async () => root.render(<I18nContext.Provider value={i18n}><FileViewer name="sample.docx" path="/work/sample.docx" workspaceRoot="/work" onClose={vi.fn()} notify={vi.fn()} expanded={false} onExpand={vi.fn()} /></I18nContext.Provider>));
+    expect(host.querySelector('[role="status"]')?.textContent).toContain("Converting document…");
+    expect(host.querySelector("iframe")).toBeNull();
+    expect(host.querySelector(".th-files-path")?.textContent).toBe("work");
+    await act(async () => resolve(new Response(null, { status: Number(status), headers: { "Content-Type": "application/pdf" } })));
+    if (status === 200) {
+      expect(host.querySelector("iframe")?.getAttribute("src")).toBe("/api/fs/preview?path=%2Fwork%2Fsample.docx#view=FitH&navpanes=0");
+      expect(host.querySelector("iframe")?.hasAttribute("sandbox")).toBe(false);
+    } else {
+      expect(host.querySelector(".th-viewer-body--frame")).toBeNull();
+      expect(host.querySelector(".th-viewer-unsupported")?.textContent).toContain(reason);
+      expect(host.querySelector(".th-viewer-unsupported button")?.textContent).toContain("Download");
+    }
+  } finally { act(() => root.unmount()); host.remove(); }
+  expect(fetchMock.mock.calls[0]![1].signal.aborted).toBe(true);
 });

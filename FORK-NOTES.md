@@ -204,3 +204,12 @@ evidence only. Disable the new entry point, if needed, with
 `sudo systemctl disable --now ai-portal-webchat-ujawhales-ts.socket` followed
 by `sudo systemctl stop ai-portal-webchat-ujawhales-ts.service`; the original
 loopback webchat remains available.
+
+## Office/HWP PDF previews
+
+- Authenticated `GET /api/fs/preview?path=` converts DOCX/DOC/ODT/RTF, XLSX/XLS/ODS, PPTX/PPT/ODP and HWP v5 to verified PDFs. HWPX is unsupported by the installed LibreOffice import filters.
+- `CHAT_SOFFICE_BINARY`: converter executable; defaults to `soffice` resolved on PATH.
+- `CHAT_HWP5ODT_BINARY`: HWP v5 converter; defaults to `/opt/ai-portal/tools/pyhwp/bin/hwp5odt`. HWP is first converted to ODT, then PDF.
+- Missing required tools return 501. Inputs are limited to 50 MiB; conversion runs serially with a 90-second hard process-tree deadline, isolated temporary HOME and LibreOffice profile. Closing the viewer cancels its request; shared conversions continue only while another caller waits.
+- Private PDFs are cached under `<state-dir>/preview-cache` (directory 0700/files 0600), keyed by absolute path, size and mtime. The oldest entries are removed above 500 MiB. Cache invalidation follows metadata, not file content hashing.
+- Conversion is not an OS sandbox: deploy trusted, patched converters and treat workspace documents as untrusted input. PDF responses prohibit scripts and network connections and retain the existing native PDF iframe behavior.

@@ -60,7 +60,7 @@ func (s *Server) handleRaw(w http.ResponseWriter, r *http.Request) {
 		contentType = "application/octet-stream"
 		if n == 5 && bytes.Equal(signature, []byte("%PDF-")) {
 			contentType = "application/pdf"
-			csp = "script-src 'none'; connect-src 'none'; base-uri 'none'; form-action 'none'"
+			csp = pdfCSP
 		}
 	}
 	w.Header().Set("Content-Type", contentType)

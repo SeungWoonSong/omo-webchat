@@ -13,6 +13,7 @@ import (
 	"path"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/DevNewbie1826/omo-webchat/frontend"
 	"github.com/DevNewbie1826/omo-webchat/internal/accounts"
@@ -44,6 +45,8 @@ type Server struct {
 	logger     *slog.Logger
 	ctx        context.Context
 	accounts   *accounts.Service
+
+	previewTimeout time.Duration // zero uses the production 90-second limit
 
 	// Installation updates and engine restarts replace the same binary, so
 	// both endpoints single-flight on one mutex and never overlap.
@@ -111,6 +114,7 @@ func (s *Server) Handler() http.Handler {
 	protected.HandleFunc("GET /api/fs/list", s.handleList)
 	protected.HandleFunc("GET /api/fs/download", s.handleDownload)
 	protected.HandleFunc("GET /api/fs/raw", s.handleRaw)
+	protected.HandleFunc("GET /api/fs/preview", s.handlePreview)
 	protected.HandleFunc("GET /api/fs/read", s.handleReadFile)
 	protected.HandleFunc("GET /api/fs/search", s.handleSearch)
 	protected.HandleFunc("POST /api/fs/write", s.handleWriteFile)
