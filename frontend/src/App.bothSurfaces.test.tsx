@@ -181,6 +181,8 @@ describe("App + Sidebar both-surfaces live ordering", () => {
   });
 
   it("excludes a crawl-only session from both surfaces while the crawl still learns its recency and arms the cadence", async () => {
+    // Assert the visible tree inventory, not hidden children of a closed workspace.
+    window.localStorage.setItem("th-ws-expanded", JSON.stringify(["ws-1"]));
     await act(async () => {
       root.render(<App />);
     });

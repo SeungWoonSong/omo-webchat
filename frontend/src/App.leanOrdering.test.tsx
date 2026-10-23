@@ -39,6 +39,8 @@ describe("rendered lean recency on Sidebar and home", () => {
     vi.stubGlobal("matchMedia", (media: string) => ({ matches: false, media,
       addEventListener: () => undefined, removeEventListener: () => undefined }));
     window.localStorage.clear();
+    // Row ordering is visible only when the workspace is expanded.
+    window.localStorage.setItem("th-ws-expanded", JSON.stringify(["ws"]));
     rows = [older, newer];
     catalog = [];
     vi.mocked(connectChat).mockImplementation(h => {

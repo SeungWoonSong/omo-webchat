@@ -114,6 +114,8 @@
      which holds 4.5:1 on this tint over the pane and the tool card. */
   --th-accent-bg: color-mix(in srgb, var(--th-accent) 12%, transparent);
   --th-accent-ink: #9d90f8;
+  /* Sidebar chips also sit on hover/active fills, unlike pane status text. */
+  --th-tree-running-ink: #b4a8ff;
   /* Halo/glow for running indicators - accent at 35%. */
   --th-accent-glow: color-mix(in srgb, var(--th-accent) 35%, transparent);
 
@@ -327,6 +329,7 @@
   --th-accent-select: color-mix(in srgb, var(--th-accent) 22%, var(--th-active));
   --th-accent-bg: color-mix(in srgb, var(--th-accent) 12%, transparent);
   --th-accent-ink: #5b49c2;
+  --th-tree-running-ink: #5b49c2;
   --th-accent-glow: color-mix(in srgb, var(--th-accent) 35%, transparent);
 
   /* Composer send action: same filled violet control as dark. */

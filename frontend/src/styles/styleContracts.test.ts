@@ -1589,18 +1589,21 @@ describe("coarse-pointer shell hit-area contracts (G40)", () => {
     for (const selector of [
       ".th-tree-node:hover .th-tree-actions",
       ".th-tree-node:focus-within .th-tree-actions",
-      ".th-tree-node--active .th-tree-actions",
+      '.th-tree-actions:has([aria-expanded="true"])',
     ]) {
       expect(sessionTree).toContain(selector);
     }
-    expect(sessionTree).toMatch(/\.th-tree-node--active \.th-tree-actions,\s*\.th-tree-actions\[data-th-restore-focus\]\s*\{\s*display:\s*inline-flex/);
+    expect(sessionTree).toMatch(/\.th-tree-node:focus-within \.th-tree-actions,[^{]+\{\s*display:\s*inline-flex/);
+    expect(sessionTree).not.toMatch(/\.th-tree-node--active \.th-tree-actions\s*[,\{]/);
     expect(declarationValue(ruleBody(sessionTree, ".th-tree--touch .th-tree-actions"), "display"))
       .toBe("inline-flex");
     expect(declarationValue(ruleBody(sessionTree, ".th-tree--touch .th-tree-count-slot"), "display"))
       .toBe("grid");
     // A tap leaves sticky :hover/focus; the count must not hide on touch rows.
     expect(sessionTree).not.toMatch(/(?:^|\})\s*\.th-tree-node:(?:hover|focus-within) \.th-tree-count-slot/m);
-    expect(sessionTree).toContain(".th-tree:not(.th-tree--touch) .th-tree-node:hover .th-tree-count-slot");
+    expect(sessionTree).not.toMatch(/\.th-tree-count-slot[^{}]*\{\s*display:\s*none/);
+    expect(ruleBody(sessionTree, ".th-tree-running")).toContain("color: var(--th-tree-running-ink)");
+    expect(ruleBody(sessionTree, ".th-tree-running")).toContain("background: var(--th-accent-bg)");
     expect(declarationValue(ruleBody(sessionTree, ".th-tree-count-slot"), "width"))
       .toBe("var(--th-space-8)");
     expect(declarationValue(ruleBody(sessionTree, ".th-tree-label-head"), "min-width"))

@@ -111,7 +111,7 @@
   background: transparent;
 }
 
-/* Running chip: accent ink numerals on the matching 12% tint, whether the
+/* Running chip: sidebar ink numerals on the matching 12% tint, whether the
    pill carries an exact agent count or marks main-session work alone. The
    tint separates the pill without a border (DESIGN.md State encoding:
    state never paints a coloured border). */
@@ -128,7 +128,7 @@
   line-height: var(--th-type-micro-line);
   letter-spacing: var(--th-type-micro-tracking);
   font-variant-numeric: tabular-nums;
-  color: var(--th-accent-ink);
+  color: var(--th-tree-running-ink);
   background: var(--th-accent-bg);
 }
 
@@ -343,21 +343,14 @@
   gap: var(--th-space-0-5);
 }
 
-/* Fine pointers reveal the inline actions on hover, keyboard focus and the
-   selected row (E16); coarse pointers keep the always-visible kebab
-   disclosure rendered by the touch variant instead. */
+/* Selection alone must not spend title width on actions. Focusing the primary
+   button reveals the following actions before Tab reaches them. Open menus
+   retain their trigger even if focus moves away; touch keeps its kebab. */
 .th-tree-node:hover .th-tree-actions,
 .th-tree-node:focus-within .th-tree-actions,
-.th-tree-node--active .th-tree-actions,
+.th-tree-actions:has([aria-expanded="true"]),
 .th-tree-actions[data-th-restore-focus] {
   display: inline-flex;
-}
-
-/* Only fine pointers swap the count for inline actions; a tap leaves sticky
-   :hover and focus behind, which would hide the count on touch rows. */
-.th-tree:not(.th-tree--touch) .th-tree-node:hover .th-tree-count-slot:not(:has(.th-tree-running)),
-.th-tree:not(.th-tree--touch) .th-tree-node:focus-within .th-tree-count-slot:not(:has(.th-tree-running)) {
-  display: none;
 }
 
 .th-tree-actions .th-btn-icon {

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useT } from "../i18n";
 import {
   IconEdit,
@@ -125,6 +125,10 @@ export function SessionTree({
   notify,
 }: SessionTreeProps) {
   const { t } = useT();
+  const chatsByWorkspace = useMemo(
+    () => new Map(workspaces.map((ws) => [ws.id, new Map(ws.chats.map((chat) => [chat.id, chat]))])),
+    [workspaces],
+  );
   const [rename, setRename] = useState<RenameTarget | null>(null);
   // Workspace-row overflow menu (coarse pointers, G40): three row actions
   // collapse behind one trigger so the disclosure, the workspace identity,
@@ -399,8 +403,8 @@ export function SessionTree({
             </div>
 
             <fieldset className={`th-tree-children${isOpen ? "" : " th-tree-children--closed"}`}>
-              {(sessionLists.get(ws.id) ?? []).map((item) => {
-                const listed = ws.chats.find((chat) => chat.id === item.id);
+              {(isOpen ? sessionLists.get(ws.id) ?? [] : []).map((item) => {
+                const listed = chatsByWorkspace.get(ws.id)?.get(item.id);
                 // v2 union: the sessions REST also lists cursorstore-only chats
                 // the legacy workspace chat list does not carry. They are real
                 // chats — activate them through the same select flow instead of

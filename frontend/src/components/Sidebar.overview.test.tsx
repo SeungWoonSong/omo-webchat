@@ -201,6 +201,22 @@ describe("Sidebar pinned running sessions", () => {
     expect(container.querySelector(".th-tree-running--workspace")).toBeNull();
   });
 
+  it("excludes unresolvable engine identities from a mixed live feed and its counts", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => okResponse({ sessions: [
+      liveEntry("disk-1", "Openable", "running"),
+      { id: "uuid", title: "Unopenable", active: true, running: { agents: 2 } },
+    ] })));
+    renderSidebar(() => undefined, { chats: [], sessions: [catalogRow] });
+    await act(async () => {});
+    expect(container.querySelector('[data-session-id="uuid"]')).toBeNull();
+    expect(container.querySelectorAll('[data-session-id]')).toHaveLength(1);
+    const row = container.querySelector('[data-session-id="disk-1"]');
+    expect(row?.querySelector(".th-tree-live")).not.toBeNull();
+    expect(row?.querySelector(".th-tree-running")?.textContent).toBe("1");
+    expect(container.querySelector(".th-tree-running--workspace")?.textContent).toBe("1");
+    expect(container.querySelector(".th-tree-count")?.textContent).toBe("1");
+  });
+
   it("opens catalog-only conversations, exposes failure and retries without a second row", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => okResponse(IDLE_LIVE_RESPONSE)));
     const onOpenSession = vi.fn().mockRejectedValueOnce(new Error("load failed")).mockResolvedValue("opened");
