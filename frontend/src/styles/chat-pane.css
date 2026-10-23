@@ -66,6 +66,32 @@
   gap: var(--th-space-1);
 }
 
+.th-termhead-menu {
+  display: inline-flex;
+}
+
+.th-chat-pane .th-termhead-overflow {
+  inset: auto;
+  margin: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  color: inherit;
+  background: var(--th-surface-overlay);
+}
+
+.th-chat-pane .th-termhead-overflow .th-tree-overflow-item {
+  flex-shrink: 0;
+  width: 100%;
+  height: auto;
+}
+
+.th-chat-pane .th-termhead-overflow .th-tree-overflow-item:disabled {
+  background: var(--th-disabled-bg);
+  color: var(--th-disabled-fg);
+  cursor: default;
+}
+
 .th-chat-pane .th-chat-resync-btn {
   flex: none;
 }
@@ -917,10 +943,18 @@
     min-height: var(--th-space-11);
   }
 
-  /* Overflow actions collapse gracefully: the split buttons hide, keeping
-     disconnect and close reachable. */
+  .th-chat-pane .th-termhead-more-btn,
+  .th-chat-pane .th-termhead-overflow .th-tree-overflow-item {
+    min-height: 44px;
+  }
+
+  /* Keep secondary actions in the overflow on compact panes too. */
   .th-chat-pane .th-termhead-split-btn {
     display: none;
+  }
+
+  .th-chat-pane .th-termhead-overflow .th-termhead-split-btn {
+    display: flex;
   }
 }
 

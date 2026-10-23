@@ -67,6 +67,7 @@ describe("ChatPane external-write recovery", () => {
       expect(siblingContainer.textContent).toContain("sibling transcript");
       const siblingBefore = siblingContainer.innerHTML;
       const siblingSent = [...sibling.sent];
+      act(() => requireElement(container.querySelector<HTMLButtonElement>(".th-termhead-more-btn"), "more").click());
       act(() => requireElement(container.querySelector<HTMLButtonElement>(".th-chat-resync-btn"), "resync").click());
       expect(primary.sent.slice(-2)).toEqual([
         { type: "chat.close", sessionId: "chat-1" },

@@ -4,6 +4,8 @@ import ko from "./locales/ko.json";
 
 const KEYS = [
   "sidebar.tm.untitled",
+  "sidebar.tm.newSession",
+  "chat.header.moreActions",
 ] as const;
 
 function localeTable(table: typeof en): Record<string, string> {

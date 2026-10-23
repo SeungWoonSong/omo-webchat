@@ -112,7 +112,10 @@ describe("ActivityShelf DAG tab run counts", () => {
     exactDagSurface(null);
 
     // No scalars and no retained runs is equally an empty slot.
-    renderShelfWithSource(activityState({ truncatedDags: false }));
+    renderShelfWithSource(activityState({
+      todo: [{ name: "Phase", tasks: [{ content: "item", status: "pending" }] }],
+      truncatedDags: false,
+    }));
     expect(count()).toBeNull();
     exactDagSurface(null);
   });

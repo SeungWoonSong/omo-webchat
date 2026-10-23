@@ -1,4 +1,5 @@
 import { act } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChatClientFrame, ChatConnector, ChatServerFrame } from "../../lib/chatWs";
@@ -17,6 +18,13 @@ import {
 } from "./chatPaneTestHarness";
 
 function resyncButton(root: { container: HTMLElement }): HTMLButtonElement {
+	const existing = root.container.querySelector<HTMLButtonElement>(".th-chat-resync-btn");
+	if (existing) return existing;
+	const more = requireElement(
+		root.container.querySelector<HTMLButtonElement>(".th-termhead-more-btn"),
+		"header overflow trigger",
+	);
+	flushSync(() => more.click());
 	return requireElement(
 		root.container.querySelector<HTMLButtonElement>(".th-chat-resync-btn"),
 		"resync control",

@@ -51,7 +51,8 @@ export function LiveSessionList({
   return (
     <div className={`th-overview-list${listClassName !== undefined ? ` ${listClassName}` : ""}`}>
       {listed.map(({ summary, target }) => {
-        const title = summary.title.length > 0 ? summary.title : summary.id;
+        const rawTitle = summary.title.length > 0 ? summary.title : summary.id;
+        const title = rawTitle.trim() === "New session" ? t("sidebar.tm.newSession") : rawTitle;
         const attempt = target.kind === "session"
           ? openAttempts.get(sessionOpenAttemptKey(target.workspace.id, target.session.id))
           : undefined;

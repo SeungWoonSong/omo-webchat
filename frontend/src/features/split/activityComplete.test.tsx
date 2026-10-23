@@ -275,7 +275,7 @@ describe("complete DAG dashboard", () => {
 
   it("distinguishes an authoritative empty catalog from loading", async () => {
     // Given no summary; When the entire authorized catalog returns empty.
-    render(activityState()); open();
+    render(activityState({ truncatedDags: true })); open();
     expect(catalogStatus()).toBe("loading");
     await reply(request(firstPage), catalog([]));
     expect(catalogStatus()).toBe("empty");
@@ -448,7 +448,7 @@ describe("complete DAG dashboard", () => {
 
   it("discovers runs on later catalog pages without relying on retained snapshot membership", async () => {
     // Given no retained DAG at all; When the authorized catalog pages in.
-    render(activityState()); open();
+    render(activityState({ truncatedDags: true })); open();
     await reply(request(firstPage), catalog(["r1"], "opaque cursor"));
     await reply(request(`${base}/r1`), full("r1"));
     expect(rowIds()).toEqual(["r1"]);
@@ -463,7 +463,7 @@ describe("complete DAG dashboard", () => {
   });
 
   it("rejects equal-revision completed/tokenA to running/tokenB after a prior full response", async () => {
-    render(activityState()); open(); await reply(request(firstPage), catalog());
+    render(activityState({ truncatedDags: true })); open(); await reply(request(firstPage), catalog());
     const completed = uniform("completed", revision, "a".repeat(64));
     await reply(request(`${base}/r1`), completed);
     expect(status()).toBe("complete");
@@ -502,7 +502,7 @@ describe("complete DAG dashboard", () => {
   }
   async function roundTripF2(doc = documentF2("completed")) {
     // Historical a and b both load through the first catalog page.
-    render(activityState()); open(); await reply(request(firstPage), catalog(["a", "b"]));
+    render(activityState({ truncatedDags: true })); open(); await reply(request(firstPage), catalog(["a", "b"]));
     await replyF2(request(`${base}/a`), doc, "a");
     expect(status("a")).toBe("complete");
     await replyF2(request(`${base}/b`), full("b"), "b");
@@ -577,7 +577,7 @@ describe("complete DAG dashboard", () => {
   it.each(["fold", "reconnect"])("preserves F2 accepted facts across %s after returning to a", async kind => {
     await roundTripF2();
     if (kind === "fold") { open(); open(); }
-    else { render(activityState(), false); render(activityState(), true); }
+    else { render(activityState({ truncatedDags: true }), false); render(activityState({ truncatedDags: true }), true); }
     await reply(request(firstPage, kind === "fold" ? 1 : 2), catalog(["a", "b"]));
     await replyF2(request(`${base}/a`, 1), documentF2("running", revision, "b"), "a");
     expect(status("a")).toBe("stale");
@@ -603,7 +603,7 @@ describe("complete DAG dashboard", () => {
     await reply(request(firstPage, 1), catalog(["a", "b"]));
     const cancelled = request(`${base}/a`, 1);
     const source = { wsId: kind === "workspace" ? "other" : "ws", chatId: kind === "chat" ? "other" : "chat", connected: true };
-    act(() => harness.root.render(<I18nContext.Provider value={i18n}><ActivityShelf activities={activityState()} dagSource={source} /></I18nContext.Provider>));
+    act(() => harness.root.render(<I18nContext.Provider value={i18n}><ActivityShelf activities={activityState({ truncatedDags: true })} dagSource={source} /></I18nContext.Provider>));
     expect(cancelled.signal?.aborted).toBe(true); expect(nodes()).toEqual([]);
     const otherBase = `/api/workspaces/${source.wsId}/chats/${source.chatId}/dag-runs`;
     await reply(request(`${otherBase}?limit=10`), catalog(["a"]));
@@ -649,7 +649,7 @@ describe("complete DAG dashboard", () => {
   });
 
   it("revalidates equal full facts with a different opaque token without ordering token values", async () => {
-    render(activityState()); open(); await reply(request(firstPage), catalog());
+    render(activityState({ truncatedDags: true })); open(); await reply(request(firstPage), catalog());
     await reply(request(`${base}/r1`), uniform("completed", revision, "z"));
     click(requireElement(harness.container.querySelector("[data-activity-dag-retry]"), "refresh"));
     await reply(request(firstPage, 1), catalog());
@@ -871,7 +871,8 @@ describe("complete DAG dashboard", () => {
 
   it("binds the real primary ChatPane to automatic authorized retrieval", async () => {
     // Given a real chat pane with no replay graph; When opening its DAG tab.
-    renderChatPane(harness.root, { id: "chat", wsId: "ws", name: "chat", cwd: "/work", provider: "omo" });
+    const { deliver } = renderChatPane(harness.root, { id: "chat", wsId: "ws", name: "chat", cwd: "/work", provider: "omo" });
+    act(() => deliver({ type: "extensionEvent", sessionId: "chat", name: "omo.dag.updated", data: { runs: [], truncated_runs: true } }));
     open(); await reply(request(firstPage), catalog()); await reply(request(`${base}/r1`), full());
     expect(nodes()).toHaveLength(3); expect(status()).toBe("complete");
   });

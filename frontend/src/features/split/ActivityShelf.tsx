@@ -198,17 +198,19 @@ export function ActivityShelf({ activities, dagSource }: ActivityShelfProps) {
   // entries stay mounted (sorted behind live ones) instead of vanishing the
   // moment everything turns terminal. It hides only when there is genuinely
   // nothing to show, including no marker for omitted historical rows.
-  const historyPartial = activities.truncatedTasks === true || activities.truncatedDags === true;
+  const historyPartial = activities.truncatedTasks === true || activities.truncatedDags === true || activities.truncatedDagRuns === true;
   const hasTaskCount = (taskCounts.taskTotalCount !== undefined && taskCounts.taskTotalCount > 0)
     || (taskCounts.taskAgentTotalCount !== undefined && taskCounts.taskAgentTotalCount > 0);
-  const hasActivity = dagSource !== undefined || activities.todo !== null || tasks.length > 0 || dags.length > 0 || hasTaskCount || historyPartial;
+  const hasDagCount = taskCounts.dagRunTotalCount !== undefined && taskCounts.dagRunTotalCount > 0;
+  const hasTodo = activities.todo !== null && activities.todo.length > 0;
+  const hasActivity = hasTodo || tasks.length > 0 || dags.length > 0 || hasTaskCount || hasDagCount || historyPartial;
   const hasLiveActivity = tasks.some((task) => !TERMINAL_TASK_STATUSES.has(task.status))
     || dags.some((run) => !TERMINAL_DAG_STATUSES.has(run.status));
 
   const availability: Readonly<Record<ShelfTab, boolean>> = {
-    todo: activities.todo !== null,
-    agents: tasks.length > 0 || hasTaskCount,
-    dag: dagSource !== undefined || dags.length > 0,
+    todo: hasTodo,
+    agents: tasks.length > 0 || hasTaskCount || activities.truncatedTasks === true,
+    dag: dags.length > 0 || hasDagCount || activities.truncatedDags === true || activities.truncatedDagRuns === true,
   };
   const selectedTab: ShelfTab = chosenTab
     ?? (SHELF_TABS.find((tab) => availability[tab]) ?? "todo");

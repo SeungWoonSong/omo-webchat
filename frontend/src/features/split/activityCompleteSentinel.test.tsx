@@ -145,7 +145,7 @@ describe("complete DAG list-end sentinel layout and continuation geometry", () =
 
   function render() {
     act(() => harness.root.render(<I18nContext.Provider value={i18n}><ActivityShelf
-      activities={activityState()} dagSource={{ wsId: "ws", chatId: "chat", connected: true }} /></I18nContext.Provider>));
+      activities={activityState({ truncatedDags: true })} dagSource={{ wsId: "ws", chatId: "chat", connected: true }} /></I18nContext.Provider>));
   }
   function open() {
     act(() => { requireElement(harness.container.querySelector('[data-activity-tab="dag"]'), "DAG tab").dispatchEvent(

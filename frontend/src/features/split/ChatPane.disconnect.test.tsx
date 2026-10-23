@@ -47,9 +47,12 @@ describe("ChatPane disconnect confirmation with shipped locales", () => {
     return { frames, close, notify };
   }
   function open(index = 0) {
-    const trigger = requireElement(container.querySelectorAll<HTMLButtonElement>(".th-disconnect-btn")[index], "trigger");
+    const pane = requireElement(container.querySelectorAll<HTMLElement>(".th-chat-pane")[index], "pane");
+    const more = requireElement(pane.querySelector<HTMLButtonElement>(".th-termhead-more-btn"), "more");
+    act(() => { more.focus(); more.click(); });
+    const trigger = requireElement(pane.querySelector<HTMLButtonElement>(".th-disconnect-btn"), "trigger");
     act(() => { trigger.focus(); trigger.click(); });
-    return trigger;
+    return more;
   }
   const dialog = () => requireElement(document.querySelector<HTMLElement>('[role="dialog"][aria-modal="true"]'), "dialog");
 

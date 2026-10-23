@@ -102,6 +102,36 @@ describe("SessionTree session-row hierarchy", () => {
     expect(activation?.getAttribute("aria-selected")).toBeNull();
   });
 
+  it("localizes the default New session placeholder title via i18n", () => {
+    act(() => {
+      root.render(
+        <I18nContext.Provider value={i18n}>
+          <SessionTree
+            workspaces={[{ ...workspace, chats: [{ id: "tm-new", name: "New session", provider: "omo" }] }]}
+            liveSessions={new Set()}
+            activeTerminalId="tm-new"
+            placedSessions={new Set()}
+            expanded={new Set([workspace.id])}
+            sessionLists={new Map([[workspace.id, [{ id: "tm-new", name: "New session", source: "stored", recencyMs: 1 }]]])}
+            sessionPages={new Map()}
+            onToggle={() => undefined}
+            onLoadMoreSessions={() => undefined}
+            onSelect={() => undefined}
+            onAddTerminal={() => undefined}
+            onDeleteWorkspace={() => undefined}
+            onDeleteTerminal={() => undefined}
+            onRenameWorkspace={async () => undefined}
+            onRenameTerminal={async () => undefined}
+            notify={() => undefined}
+          />
+        </I18nContext.Provider>,
+      );
+    });
+
+    const activation = container.querySelector<HTMLButtonElement>(".th-tree-children .th-tree-activation");
+    expect(activation?.textContent).toBe("sidebar.tm.newSession");
+  });
+
   it("uses plain row containers with sibling controls and no nested interactive elements", () => {
     const onToggle = vi.fn();
     const onSelect = vi.fn();

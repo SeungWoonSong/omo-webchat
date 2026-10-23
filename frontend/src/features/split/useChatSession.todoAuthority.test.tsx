@@ -78,7 +78,7 @@ describe("canonical todo hook authority", () => {
     expect(current.messages[1]?.blocks).toEqual([{ kind: "tool", name: "todo", text: "written" }]);
   });
 
-  it("renders canonical replacement, unavailable retention, reopen and clear on the permanent todo tab", () => {
+  it("renders canonical replacement, unavailable retention, reopen and clear on the content-gated todo tab", () => {
     act(() => { deliver(ready()); deliver(projection(A)); });
     act(() => container.querySelector<HTMLButtonElement>('[data-activity-tab="todo"]')!.click());
     expect(container.querySelector(".th-activity-todo-task--completed .th-activity-todo-text")?.textContent).toBe("old completed");
@@ -89,7 +89,8 @@ describe("canonical todo hook authority", () => {
     expect(container.querySelector(".th-activity-todo-text")?.textContent).toBe("new work");
     act(() => deliver(projection([], 4)));
     expect(container.querySelectorAll(".th-activity-todo-task")).toHaveLength(0);
-    expect(container.querySelector('[data-activity-tab="todo"]')).not.toBeNull();
+    expect(container.querySelector('[data-activity-tab="todo"]')).toBeNull();
+    expect(container.querySelector(".th-activity-shelf")).toBeNull();
     act(() => deliver(projection(B, 5)));
     expect(container.querySelector(".th-activity-todo-text")?.textContent).toBe("new work");
     act(() => deliver(projection(null, 6)));
