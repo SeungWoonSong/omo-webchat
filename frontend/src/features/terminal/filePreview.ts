@@ -1,11 +1,12 @@
 import { qs } from "../../lib/api";
 
-export type PreviewKind = "markdown" | "html" | "image" | "pdf" | "audio" | "video" | "table" | "json" | "text" | "unsupported";
+export type PreviewKind = "markdown" | "html" | "image" | "pdf" | "audio" | "video" | "table" | "json" | "text" | "office" | "unsupported";
 export function previewKind(name: string): PreviewKind {
   const ext = name.split(".").pop()?.toLowerCase() ?? "";
   if (["md", "markdown"].includes(ext)) return "markdown";
   if (["html", "htm", "xhtml"].includes(ext)) return "html";
   if (["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg"].includes(ext)) return "image";
+  if (["docx", "doc", "odt", "rtf", "xlsx", "xls", "ods", "pptx", "ppt", "odp", "hwp"].includes(ext)) return "office";
   if (ext === "pdf") return "pdf";
   if (["mp3", "wav", "ogg", "m4a", "flac"].includes(ext)) return "audio";
   if (["mp4", "webm", "mov", "ogv"].includes(ext)) return "video";
@@ -17,6 +18,7 @@ export function previewKind(name: string): PreviewKind {
 export function isTextPreview(kind: PreviewKind): boolean {
   return ["markdown", "html", "table", "json", "text"].includes(kind);
 }
+export function previewUrl(path: string): string { return `/api/fs/preview${qs({ path })}`; }
 export function rawUrl(path: string): string { return `/api/fs/raw${qs({ path })}`; }
 export function markdownImageUrl(path: string, src: string): string {
   if (/^(?:[a-z][a-z\d+.-]*:|\/\/|#)/i.test(src)) return src;

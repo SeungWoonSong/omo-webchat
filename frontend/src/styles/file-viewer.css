@@ -54,3 +54,8 @@
   .th-viewer-body:not(.th-viewer-body--frame):not(.th-viewer-body--image) { padding: var(--th-space-4); }
   .th-viewer-unsupported { padding: var(--th-space-4); }
 }
+
+/* Progress: reflects the cancellable server conversion request. */
+.th-viewer-spinner { display: inline-block; width: 16px; height: 16px; margin-inline-end: var(--th-space-2); border: 2px solid var(--th-muted); border-top-color: transparent; border-radius: 50%; animation: th-viewer-spin var(--th-dur-run) linear infinite; }
+@keyframes th-viewer-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .th-viewer-spinner { animation: none; } }
