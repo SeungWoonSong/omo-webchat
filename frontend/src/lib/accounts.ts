@@ -3,6 +3,8 @@ import { apiJson, apiVoid } from "./api";
 export interface AccountProvider {
   readonly id: string;
   readonly name: string;
+  readonly authType?: string;
+  readonly keyHint?: string;
   readonly status: { readonly configured: boolean };
   readonly accounts: readonly {
     readonly name: string;
@@ -67,4 +69,23 @@ export function safeLoginURL(value: string): string | undefined {
       (url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname))) return url.href;
   } catch { return undefined; }
   return undefined;
+}
+
+export interface APIKeyResult {
+  readonly ok: boolean;
+  readonly replaced?: "oauth";
+  readonly keyHint?: string;
+  readonly backedUp?: boolean;
+}
+export const saveAccountAPIKey = (key: string) =>
+  apiJson<APIKeyResult>("/api/accounts/anthropic/api-key", { method: "POST", body: { key } });
+
+export function trimAnthropicAPIKey(value: string): string {
+  return value.replace(/^\p{White_Space}+|\p{White_Space}+$/gu, "");
+}
+
+export function validAnthropicAPIKey(value: string): boolean {
+  const key = trimAnthropicAPIKey(value);
+  return key.startsWith("sk-ant-") && new TextEncoder().encode(key).length <= 512 &&
+    !/[\p{White_Space}\p{Cc}]/u.test(key);
 }

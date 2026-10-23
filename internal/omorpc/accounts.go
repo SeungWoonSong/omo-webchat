@@ -66,3 +66,12 @@ type AuthLoginEvent struct {
 	Success     bool     `json:"success,omitempty"`
 	Error       string   `json:"error,omitempty"`
 }
+
+// LoginAPIKey is sent only on a private account connection. Never log this value.
+type LoginAPIKey struct {
+	SessionID string `json:"sessionId"`
+	Provider  string `json:"provider"`
+	Key       string `json:"key"`
+}
+
+func (LoginAPIKey) commandName() string { return "login_api_key" }

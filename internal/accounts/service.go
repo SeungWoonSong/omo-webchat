@@ -46,9 +46,11 @@ type Account struct {
 }
 
 type Provider struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-	Status struct {
+	ID       string `json:"id"`
+	AuthType string `json:"authType,omitempty"`
+	KeyHint  string `json:"keyHint,omitempty"`
+	Name     string `json:"name"`
+	Status   struct {
 		Configured bool `json:"configured"`
 	} `json:"status"`
 	Accounts []Account `json:"accounts"`
@@ -59,6 +61,10 @@ func New(ctx context.Context, cwd string, dial Dial) *Service {
 }
 
 func supported(p string) bool {
+	return p == "anthropic" || subscriptionSupported(p)
+}
+
+func subscriptionSupported(p string) bool {
 	return p == "anthropic-subscription" || p == "chatgpt-subscription" || p == "cursor"
 }
 
@@ -108,8 +114,21 @@ func (s *Service) List(ctx context.Context) ([]Provider, error) {
 	if err := call(ctx, e, omorpc.GetAuthProviders{SessionID: sid}, &data); err != nil {
 		return nil, err
 	}
-	result := make([]Provider, 0, 3)
+	result := make([]Provider, 0, 4)
 	seen := make(map[string]bool)
+	// Auth methods can share an ID; retain the configured method for replacement
+	// confirmation instead of blindly keeping the first OAuth/API-key row.
+	for i, p := range data.Providers {
+		if p.ID != "anthropic" || !p.Status.Configured {
+			continue
+		}
+		for j := 0; j < i; j++ {
+			if data.Providers[j].ID == p.ID {
+				data.Providers[j], data.Providers[i] = p, data.Providers[j]
+				break
+			}
+		}
+	}
 	for _, p := range data.Providers {
 		if !supported(p.ID) || seen[p.ID] {
 			continue
@@ -127,11 +146,30 @@ func (s *Service) List(ctx context.Context) ([]Provider, error) {
 		}
 		result = append(result, p)
 	}
+	// Keep the API-key lane adjacent to, but distinct from, Claude subscription.
+	for i, p := range result {
+		if p.ID != "anthropic" {
+			continue
+		}
+		row := p
+		result = append(result[:i], result[i+1:]...)
+		at := 0
+		for j, p := range result {
+			if p.ID == "anthropic-subscription" {
+				at = j + 1
+				break
+			}
+		}
+		result = append(result, Provider{})
+		copy(result[at+1:], result[at:])
+		result[at] = row
+		break
+	}
 	return result, nil
 }
 
 func (s *Service) Start(ctx context.Context, owner, provider string) (*Flow, error) {
-	if !supported(provider) {
+	if !subscriptionSupported(provider) {
 		return nil, ErrInvalid
 	}
 	s.mu.Lock()
