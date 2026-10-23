@@ -941,10 +941,11 @@ describe("compact sidebar shell contracts", () => {
 });
 
 describe("sidebar density and top-bar hierarchy contracts", () => {
-  it("packs sidebar rows at 36px with 8px inline padding, 8px icon gap, and 2px between rows", () => {
+  it("packs sidebar rows on the shell inset with one 20px nesting step", () => {
     const node = sessionTree.match(/\.th-tree-node\s*\{([^}]*)\}/)?.[1] ?? "";
     expect(node).toMatch(/min-height:\s*var\(--th-space-9/);
-    expect(node).toMatch(/padding:\s*0 var\(--th-space-2/);
+    expect(node).toMatch(/padding:\s*0;/);
+    expect(ruleBody(sessionTree, ".th-tree-children")).toContain("padding: 0 0 0 var(--th-space-5)");
     expect(node).toMatch(/gap:\s*var\(--th-space-2/);
     const children = sessionTree.match(/\.th-tree-children\s*\{([^}]*)\}/)?.[1] ?? "";
     expect(children).toMatch(/gap:\s*var\(--th-space-0-5/);
@@ -1304,118 +1305,28 @@ describe("modal visual-viewport contracts", () => {
   });
 });
 
-describe("pinned live-session section contracts", () => {
-  // The running-sessions block sits between .th-sidebar-nav and the flex:1
-  // workspace tree: it never flexes, caps its height at min(30vh, 216px), and
-  // scrolls internally, so live sessions can never push the tree out of
-  // reach. Its rows reuse the overview card markup at compact density inside
-  // the 264px shell, so the name stays on one ellipsized line.
-  const sidebarLive = readStyle("sidebar-live");
-  const overview = readStyle("overview");
-
-  // Resolve any --th-* token to a number: plain px/unitless values parse
-  // directly, calc() expressions are substituted recursively and evaluated.
-  const numericToken = (name: string): number => {
-    const raw = tokenValue(name);
-    const expression = raw
-      .replace(/var\(\s*(--[\w-]+)\s*\)/g, (_match, ref: string) => String(numericToken(ref)))
-      .replace(/calc|px/g, "");
-    return Function(`"use strict"; return (${expression});`)() as number;
-  };
-  const evaluateCalc = (value: string): number =>
-    Function(
-      `"use strict"; return (${value
-        .replace(/var\(\s*(--[\w-]+)\s*\)/g, (_match, ref: string) => String(numericToken(ref)))
-        .replace(/calc|px/g, "")});`,
-    )() as number;
-
-  it("pins the section with flex none and a bounded internal scrollport", () => {
-    const section = ruleBody(sidebarLive, ".th-sidebar-live");
-    expect(declarationValue(section, "flex")).toBe("none");
-    expect(declarationValue(section, "max-height")).toBe("min(30vh, 216px)");
-    expect(declarationValue(section, "overflow-y")).toBe("auto");
+describe("unified sidebar tree contracts", () => {
+  it("uses one shell inset for toolbar, body and footer without workspace outdents", () => {
+    for (const selector of [".th-sidebar-nav", ".th-sidebar-body", ".th-sidebar-footer"]) {
+      expect(ruleBody(sidebar, selector)).toContain("var(--th-space-3)");
+    }
+    expect(sessionTree).not.toMatch(/margin-inline:/);
+    const footer = readStyle("sidebar-footer");
+    expect(ruleBody(footer, ".th-sidebar-footer > .th-settings-menu")).toContain("width: var(--th-space-5)");
+    expect(footer).toContain("transform: translateX(-50%)");
+    expect(ruleBody(readStyle("workspace-add-button"), ".th-btn-add")).toContain("padding: 0");
   });
-
-  it("clamps every compact live row's name to one ellipsized line at the label tier", () => {
-    const name = ruleBody(sidebarLive, ".th-sidebar-live-list .th-overview-card-name");
-    expect(declarationValue(name, "font-size")).toBe("var(--th-type-label-size)");
-    expect(declarationValue(name, "min-width")).toBe("0");
-    expect(declarationValue(name, "overflow")).toBe("hidden");
-    expect(declarationValue(name, "text-overflow")).toBe("ellipsis");
-    expect(declarationValue(name, "white-space")).toBe("nowrap");
-    // The done/DAG meta row no longer renders anywhere, so no meta styling
-    // may linger in either sheet or in the shared overview card styles.
-    expect(sidebarLive.includes("th-overview-card-meta")).toBe(false);
-    expect(overview.includes("th-overview-card-meta")).toBe(false);
+  it("uses one fixed icon slot, one selected wash and centered equal badges", () => {
+    expect(ruleBody(sessionTree, ".th-tree-icon")).toContain("width: var(--th-space-5)");
+    expect(ruleBody(sessionTree, ".th-tree-indicator")).toContain("background: var(--th-active)");
+    expect(sessionTree).toMatch(/\.th-tree-count, \.th-tree-running\s*\{[^}]*align-items: center[^}]*height: var\(--th-space-6\)/);
+    expect(ruleBody(sessionTree, ".th-tree-label")).toContain("text-overflow: ellipsis");
+    expect(sessionTree).toMatch(/@media \(max-width: 768px\)[\s\S]*min-height: var\(--th-space-11\)/);
   });
-
-  it("pins the card's minimum height geometrically above the head row's tallest content", () => {
-    // The head row's tallest natural content is the running pill: the micro
-    // line box plus its 2px of border (overview.css .th-overview-card-running).
-    const pillHeight = numericToken("--th-type-micro-size") * numericToken("--th-type-micro-line") + 2;
-    const blockStep = numericToken("--th-space-2");
-
-    // The required floor is the COMPLETE card box: the pill plus both block
-    // padding steps plus the card's own top and bottom border widths, read
-    // from the card rule that declares them rather than assumed. A min-height
-    // that covers content but forgets the border renders the card short by
-    // exactly that border (border-box sizing), so the floor must include it.
-    const baseCard = ruleBody(overview, ".th-overview-card");
-    const borderWidth = Number.parseFloat(
-      declarationValue(baseCard, "border").match(/(\d+(?:\.\d+)?)px/)?.[1] ?? "NaN",
-    );
-    expect(borderWidth, "card border width readable from the card rule").not.toBeNaN();
-    const requiredMin = pillHeight + 2 * blockStep + 2 * borderWidth;
-
-    // The height contract lives on the card element, not the inner button, so
-    // the row geometry belongs to the card. It must compute to at least the
-    // complete card box — a rule even a few tenths of a pixel short fails here.
-    const card = ruleBody(sidebarLive, ".th-sidebar-live-list .th-overview-card");
-    expect(card, "compact live card rule").not.toBe("");
-    const minHeight = declarationValue(card, "min-height");
-    expect(minHeight, "min-height declaration").toMatch(/^calc\(/);
-    expect(containsVarToken(minHeight, "--th-type-micro-size")).toBe(true);
-    expect(containsVarToken(minHeight, "--th-type-micro-line")).toBe(true);
-    expect(evaluateCalc(minHeight)).toBeGreaterThanOrEqual(requiredMin);
-
-    // The button keeps its block padding step-up to at least --th-space-2 and
-    // carries no min-height of its own.
-    const open = ruleBody(sidebarLive, ".th-sidebar-live-list .th-overview-card-open");
-    expect(declarationValue(open, "min-height")).toBe("");
-    const blockPadding = declarationValue(open, "padding").split(/\s+/)[0] ?? "";
-    const blockToken = wholeVarToken(blockPadding);
-    expect(blockToken, "block padding must be a spacing token").toMatch(/^--th-space-/);
-    expect(numericToken(blockToken)).toBeGreaterThanOrEqual(blockStep);
-  });
-
-  it("centres the compact activation across the pinned card without changing shared cards", () => {
-    const card = ruleBody(overview, ".th-overview-card");
-    const sharedOpen = ruleBody(overview, ".th-overview-card-open");
-    const compactOpen = ruleBody(sidebarLive, ".th-sidebar-live-list .th-overview-card-open");
-    expect(declarationValue(card, "display")).toBe("flex");
-    expect(declarationValue(card, "flex-direction")).toBe("column");
-    expect(declarationValue(compactOpen, "flex")).toBe("1");
-    expect(sharedOpen).toMatch(/justify-content:\s*center\s*;/);
-    expect(declarationValue(sharedOpen, "flex")).toBe("");
-    expect(declarationValue(ruleBody(overview, ".th-overview-card-open:focus-visible"), "box-shadow"))
-      .toBe("0 0 0 3px var(--th-ring)");
-  });
-
-  it("pins the compact head row to the running pill's height", () => {
-    // Once activation content grows a card past its pinned minimum, the card
-    // min-height stops normalizing anything; the head row must then carry its
-    // own floor so a card with the running pill, a card with the dot-only
-    // marker, and a card with neither keep the same head height. The floor is
-    // the pill's full height: the micro line box plus its 2px of border.
-    const head = ruleBody(sidebarLive, ".th-sidebar-live-list .th-overview-card-head");
-    expect(head, "compact head row rule").not.toBe("");
-    const minHeight = declarationValue(head, "min-height");
-    expect(minHeight).toMatch(/^calc\(/);
-    expect(containsVarToken(minHeight, "--th-type-micro-size")).toBe(true);
-    expect(containsVarToken(minHeight, "--th-type-micro-line")).toBe(true);
-    expect(minHeight).toContain("2px");
-    const pillHeight = numericToken("--th-type-micro-size") * numericToken("--th-type-micro-line") + 2;
-    expect(evaluateCalc(minHeight)).toBe(pillHeight);
+  it("keeps home card centering and keyboard focus unchanged", () => {
+    const overview = readStyle("overview");
+    expect(ruleBody(overview, ".th-overview-card-open")).toContain("justify-content: center");
+    expect(ruleBody(overview, ".th-overview-card-open:focus-visible")).toContain("var(--th-ring)");
   });
 });
 
@@ -1619,7 +1530,8 @@ describe("coarse-pointer shell hit-area contracts (G40)", () => {
 
   it("grows the session-tree chevron, row actions, and load-more button to 44px on coarse pointers", () => {
     const chevron = coarseRule(sessionTree, ".th-tree-chevron");
-    expect(declarationValue(chevron, "min-width")).toBe("var(--th-space-11)");
+    expect(declarationValue(chevron, "min-width")).toBe("0");
+    expect(ruleBody(sessionTree, ".th-tree-activation")).toContain("align-self: stretch");
     expect(declarationValue(chevron, "min-height")).toBe("var(--th-space-11)");
     const actions = coarseRule(sessionTree, ".th-tree-actions .th-btn-icon");
     expect(actions, "coarse row-actions rule").not.toBe("");

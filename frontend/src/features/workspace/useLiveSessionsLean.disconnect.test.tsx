@@ -41,13 +41,13 @@ it("restores the Sidebar main-running badge through fresh fallback requests afte
   const root = createRoot(container);
   const row = { id: "s", title: "Session", active: true, last_activity_ms: 300,
     running: { agents: 0, tasks: 0, dag: 0 }, done: 7 };
-  // The stored chat gives the live row its open target, so the pinned card
-  // rendering the main-running badge is one the user can actually open.
+  // The stored chat keeps both the session and workspace main-running
+  // indicators attached to an openable row in the single inventory.
   const workspaces = [{
     id: "ws", name: "Workspace", path: "/work",
     chats: [{ id: "s", name: "Session", provider: "omo" as const }],
   }];
-  const badge = () => container.querySelector(".th-overview-card-running");
+  const badge = () => container.querySelector(".th-tree-running--workspace");
   const treeBadge = () => container.querySelector(".th-tree-children .th-tree-running");
   const startPoll = () => {
     if (scheduledPoll === undefined) throw new Error("No fallback poll scheduled");
@@ -90,7 +90,7 @@ it("restores the Sidebar main-running badge through fresh fallback requests afte
     await completePoll();
     expect(badge()).not.toBeNull();
     expect(treeBadge()).not.toBeNull();
-    expect(container.querySelector(".th-sidebar-live-count")).toBeNull();
+    expect(badge()?.textContent).toBe("");
   } finally {
     act(() => root.unmount());
     container.remove();

@@ -2,3 +2,16 @@
 .th-sidebar-footer-spacer {
   flex: 1;
 }
+
+/* Match the tree's 20px icon slot without shrinking the button's native
+   32px / coarse 44px hit box: the control extends into the shell gutter. */
+.th-sidebar-footer > .th-settings-menu {
+  width: var(--th-space-5);
+  flex: none;
+}
+.th-sidebar-footer > .th-settings-menu > .th-btn-icon {
+  position: relative;
+  flex: none;
+  left: 50%;
+  transform: translateX(-50%);
+}

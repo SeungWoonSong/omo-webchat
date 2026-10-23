@@ -11,6 +11,7 @@ import {
 } from "./icons";
 import type { Terminal, Workspace, WorkspaceSession } from "../features/workspace/workspace";
 import type { WorkspaceSessionPaging } from "../features/workspace/useWorkspaces";
+import { sessionOpenAttemptKey, type SessionOpenAttemptResult, type SessionOpenAttemptStatus } from "../features/workspace/useSessionOpenAttempts";
 
 export type ToastKind = "info" | "success" | "error";
 
@@ -30,6 +31,8 @@ export interface SessionTreeProps {
   readonly onToggle: (wsId: string) => void;
   readonly onLoadMoreSessions: (wsId: string) => void;
   readonly onSelect: (ws: Workspace, tm: Terminal) => void;
+  readonly onOpen?: (ws: Workspace, session: WorkspaceSession) => Promise<SessionOpenAttemptResult>;
+  readonly openAttempts?: ReadonlyMap<string, SessionOpenAttemptStatus>;
   readonly onAddTerminal: (ws: Workspace) => void;
   readonly onDeleteWorkspace: (ws: Workspace) => void;
   readonly onDeleteTerminal: (ws: Workspace, tm: Terminal) => void;
@@ -112,6 +115,8 @@ export function SessionTree({
   onToggle,
   onLoadMoreSessions,
   onSelect,
+  onOpen,
+  openAttempts,
   onAddTerminal,
   onDeleteWorkspace,
   onDeleteTerminal,
@@ -403,7 +408,9 @@ export function SessionTree({
                 const tm = listed ?? (item.dangling !== true
                   ? { id: item.id, name: item.name, provider: "omo" as const }
                   : undefined);
-                const rowDisabled = tm === undefined;
+                const attempt = openAttempts?.get(sessionOpenAttemptKey(ws.id, item.id));
+                const opening = attempt === "opening";
+                const rowDisabled = tm === undefined || opening;
                 const active = tm !== undefined && item.id === activeTerminalId;
                 // Live comes from both feeds: the webchat live-sessions
                 // subscription and the server's rpc-watch flag on the row
@@ -425,15 +432,19 @@ export function SessionTree({
                 const danglingHint = dangling
                   ? t("sidebar.tm.missingOriginalHint", { name: displayName })
                   : undefined;
+                const placed = tm !== undefined && placedSessions.has(item.id);
                 const title = danglingHint ?? (live ? t("sidebar.tm.liveProcess") : undefined);
                 return (
                   <div
                     key={`${item.source}:${item.id}`}
+                    data-session-id={item.id}
                     className={`th-tree-node${active ? " th-tree-node--active" : ""}${rowDisabled ? " th-tree-node--disabled" : ""}`}
                   >
                     <span
-                      className={`th-tree-placed${tm !== undefined && placedSessions.has(item.id) ? " th-tree-placed--on" : ""}`}
-                      aria-hidden="true"
+                      className={`th-tree-placed${placed ? " th-tree-placed--on" : ""}`}
+                      role={placed ? "img" : undefined}
+                      aria-label={placed ? t("sidebar.tm.openInPane") : undefined}
+                      aria-hidden={placed ? undefined : true}
                     />
                     <span className="th-tree-icon">
                       <IconTerminal size={13} />
@@ -448,8 +459,11 @@ export function SessionTree({
                         title={title}
                         aria-current={active ? "true" : undefined}
                         disabled={rowDisabled}
+                        aria-busy={opening || undefined}
                         onClick={() => {
-                          if (tm !== undefined) onSelect(ws, tm);
+                          if (tm === undefined) return;
+                          if (!listed && onOpen) void onOpen(ws, item);
+                          else onSelect(ws, tm);
                         }}
                       >
                         <span className="th-tree-label">{displayName}</span>
@@ -459,23 +473,55 @@ export function SessionTree({
                       </button>
                     )}
                     {tm ? (
-                      <span className="th-tree-actions">
-                        <button
-                          type="button"
-                          className="th-btn-icon"
-                          title={t("sidebar.tm.rename")}
-                          onClick={() => setRename({ kind: "terminal", wsId: ws.id, tmId: tm.id })}
-                        >
-                          <IconEdit size={12} />
-                        </button>
-                        <button
-                          type="button"
-                          className="th-btn-icon th-btn-icon--danger"
-                          title={t("sidebar.tm.delete")}
-                          onClick={() => onDeleteTerminal(ws, tm)}
-                        >
-                          <IconTrash size={12} />
-                        </button>
+                      <span className={`th-tree-actions${touchActions ? " th-tree-actions--overflow" : ""}`}>
+                        {touchActions && (
+                          <button
+                            type="button"
+                            className="th-btn-icon"
+                            title={t("sidebar.tm.moreActions")}
+                            aria-expanded={overflowFor === `${ws.id}:${item.id}`}
+                            aria-controls={`th-tree-overflow-${ws.id}-${item.id}`}
+                            onClick={(event) => {
+                              overflowTriggerRef.current = event.currentTarget;
+                              setOverflowFor((current) => current === `${ws.id}:${item.id}` ? null : `${ws.id}:${item.id}`);
+                            }}
+                          >
+                            <IconMore size={14} />
+                          </button>
+                        )}
+                        {(!touchActions || overflowFor === `${ws.id}:${item.id}`) && (
+                          <span
+                            id={`th-tree-overflow-${ws.id}-${item.id}`}
+                            className={touchActions ? "th-tree-overflow" : "th-tree-inline-actions"}
+                            role="group"
+                            aria-label={t("sidebar.tm.moreActions")}
+                          >
+                            <button
+                              type="button"
+                              className="th-btn-icon"
+                              title={t("sidebar.tm.rename")}
+                              onClick={() => {
+                                renameTriggerRef.current = touchActions ? overflowTriggerRef.current : null;
+                                setOverflowFor(null);
+                                setRename({ kind: "terminal", wsId: ws.id, tmId: tm.id });
+                              }}
+                            >
+                              <IconEdit size={12} />
+                            </button>
+                            <button
+                              type="button"
+                              className="th-btn-icon th-btn-icon--danger"
+                              title={t("sidebar.tm.delete")}
+                              onClick={() => {
+                                if (touchActions) overflowTriggerRef.current?.focus();
+                                setOverflowFor(null);
+                                onDeleteTerminal(ws, tm);
+                              }}
+                            >
+                              <IconTrash size={12} />
+                            </button>
+                          </span>
+                        )}
                       </span>
                     ) : null}
                     {/* Same trailing-edge rule as the workspace row: actions
@@ -487,6 +533,16 @@ export function SessionTree({
                         countLabelKey="sidebar.tm.runningAgents"
                         mainRunning={mainRunning}
                       />
+                    )}
+                    {(opening || attempt === "failed" || attempt === "session-active") && (
+                      <span className="th-tree-open-state" role="status">
+                        {t(opening ? "sidebar.tm.opening" : attempt === "failed" ? "sidebar.tm.openFailed" : "sidebar.tm.sessionActive")}
+                        {attempt === "failed" && onOpen && (
+                          <button type="button" className="th-tree-retry" onClick={() => void onOpen(ws, item)}>
+                            {t("sidebar.tm.retryOpen")}
+                          </button>
+                        )}
+                      </span>
                     )}
                   </div>
                 );

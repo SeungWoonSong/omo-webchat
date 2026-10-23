@@ -119,6 +119,7 @@ describe("Sidebar pinned running sessions", () => {
 
   interface RenderOptions {
     readonly chats?: readonly Terminal[];
+    readonly activeId?: string;
     readonly sessions?: readonly WorkspaceSession[];
     readonly onOpenSession?: (ws: Workspace, session: WorkspaceSession) => Promise<"opened" | "session-active" | void>;
   }
@@ -137,8 +138,8 @@ describe("Sidebar pinned running sessions", () => {
           collapsed={false}
           onToggleCollapse={() => undefined}
           workspaces={[ws]}
-          activeTerminalId={null}
-          placedSessions={new Set()}
+          activeTerminalId={options.activeId ?? null}
+          placedSessions={new Set(["tm-1", "disk-1"])}
           liveSessions={new Set(["tm-1"])}
           expanded={new Set(["ws-1"])}
           sessionLists={new Map([["ws-1", sessions]])}
@@ -160,196 +161,85 @@ describe("Sidebar pinned running sessions", () => {
     });
   }
 
-  it("pins the running session without a click, has no modal trigger, and routes card clicks to the chat", async () => {
-    const fetchMock = vi.fn(async () => okResponse(LIVE_RESPONSE));
-    vi.stubGlobal("fetch", fetchMock);
-    const onSelect = vi.fn();
-
-    renderSidebar(onSelect);
-
-    // The modal trigger is gone: the pinned section is the only overview
-    // surface, and no dialog exists anywhere in the tree.
-    expect(container.querySelector('[role="dialog"]')).toBeNull();
-    // Structural header-action set: exactly the add-workspace and collapse
-    // controls, in that order. Without an I18n provider the titles are the
-    // keys themselves, so this pins no translated prose - but any restored
-    // overview trigger adds a third action and fails here.
-    const headerActions = [...container.querySelectorAll<HTMLButtonElement>(".th-sidebar-nav-actions button")];
-    expect(headerActions.map((button) => button.title)).toEqual(["sidebar.addWorkspace", "sidebar.collapse"]);
-    // Poll result has not landed yet; nothing is pinned while nothing runs.
-    expect(container.querySelector(".th-sidebar-live")).toBeNull();
-
-    // Data lands on the shared poller; the pinned section shows the live row
-    // with no click at all.
-    await act(async () => {});
-    const pinned = container.querySelector(".th-sidebar-live");
-    expect(pinned).not.toBeNull();
-    expect(pinned?.querySelector(".th-sidebar-live-label")?.textContent).toContain("sidebar.sessions");
-    expect(pinned?.querySelector(".th-sidebar-live-count")?.textContent).toBe("1");
-    expect(pinned?.querySelector(".th-sidebar-live-count")?.getAttribute("aria-label")).toBe("overview.runningAria");
-    const cards = pinned?.querySelectorAll<HTMLElement>(".th-overview-card");
-    expect(cards).toHaveLength(1);
-    expect(cards?.[0]?.textContent).toContain("Refactor auth");
-    // The same session still has its tree row: section card and tree row
-    // coexist for one session.
-    const treeLabels = [...container.querySelectorAll(".th-tree-children .th-tree-label")]
-      .map((node) => node.textContent);
-    expect(treeLabels).toContain("Stored session");
-
-    act(() => {
-      cards?.[0]?.querySelector<HTMLButtonElement>(".th-overview-card-open")?.click();
-    });
-
-    expect(onSelect).toHaveBeenCalledTimes(1);
-    expect(onSelect).toHaveBeenCalledWith(workspace, workspace.chats[0]);
-    // Pinned, not modal: activation does not dismiss the section.
-    expect(container.querySelector(".th-sidebar-live")).not.toBeNull();
-  });
-
-  it("lists every live session - working first, then most recent - including idle rows", async () => {
-    const fetchMock = vi.fn(async () => okResponse(MIXED_LIVE_RESPONSE));
-    vi.stubGlobal("fetch", fetchMock);
-
-    renderSidebar(() => undefined, {
-      chats: [],
-      sessions: [catalogRow, secondCatalogRow, thirdCatalogRow],
-    });
-
-    await act(async () => {});
-    const pinned = container.querySelector(".th-sidebar-live");
-    expect(pinned).not.toBeNull();
-    const cards = Array.from(pinned?.querySelectorAll<HTMLElement>(".th-overview-card") ?? []);
-    expect(cards.map((card) => card.querySelector(".th-overview-card-name")?.textContent))
-      .toEqual(["Working session", "Idle recent", "Idle older"]);
-    // The count still means "how many are working": one running agent, and
-    // its accessible name says so.
-    const count = pinned?.querySelector(".th-sidebar-live-count");
-    expect(count?.textContent).toBe("1");
-    expect(count?.getAttribute("aria-label")).toBe("overview.runningAria");
-    // Idle rows carry no running badge.
-    expect(cards[1]?.querySelector(".th-overview-card-running")).toBeNull();
-    expect(cards[2]?.querySelector(".th-overview-card-running")).toBeNull();
-    expect(cards[0]?.querySelector(".th-overview-card-running")).not.toBeNull();
-    // No card renders a meta line anymore: the done/dag counts were removed
-    // from the card render so every card keeps a uniform height.
-    expect(cards[0]?.querySelector(".th-overview-card-meta")).toBeNull();
-    expect(cards[1]?.querySelector(".th-overview-card-meta")).toBeNull();
-    expect(cards[2]?.querySelector(".th-overview-card-meta")).toBeNull();
-    expect(cards[0]?.textContent).not.toContain("overview.done");
-    expect(cards[1]?.textContent).not.toContain("overview.done");
-    expect(cards[2]?.textContent).not.toContain("overview.done");
-  });
-
-  it("hides the pinned section when every live session has no open target", async () => {
-    // A poll row keyed by an engine UUID no stored chat or loaded session row
-    // owns: clicking it could never open anything, so no section renders.
-    const fetchMock = vi.fn(async () => okResponse({
-      sessions: [{ id: "durable-uuid-9", title: "Ghost elsewhere", running: { agents: 2 }, done: 0 }],
-    }));
-    vi.stubGlobal("fetch", fetchMock);
-
-    renderSidebar(() => undefined, { chats: [], sessions: [catalogRow] });
-
-    await act(async () => {});
-    expect(container.querySelector(".th-sidebar-live")).toBeNull();
-  });
-
-  it("renders only openable cards, counts only their running work, and opens a catalog-only card through onOpenSession", async () => {
-    // disk-1 resolves through the loaded session row; durable-uuid-9 does not
-    // resolve at all. The unopenable row must not render a card, and its two
-    // running agents must not leak into the section's working-count badge.
-    const fetchMock = vi.fn(async () => okResponse({
-      sessions: [
-        liveEntry("disk-1", "Openable", "running"),
-        { id: "durable-uuid-9", title: "Ghost elsewhere", running: { agents: 2 }, done: 0, last_activity_ms: 9000 },
-      ],
-    }));
-    vi.stubGlobal("fetch", fetchMock);
-    const onOpenSession = vi.fn(async () => "opened" as const);
-
-    renderSidebar(() => undefined, { chats: [], sessions: [catalogRow], onOpenSession });
-
-    await act(async () => {});
-    const pinned = container.querySelector(".th-sidebar-live");
-    expect(pinned).not.toBeNull();
-    const cards = Array.from(pinned?.querySelectorAll<HTMLElement>(".th-overview-card") ?? []);
-    expect(cards.map((card) => card.querySelector(".th-overview-card-name")?.textContent)).toEqual(["Openable"]);
-    expect(pinned?.querySelector(".th-sidebar-live-count")?.textContent).toBe("1");
-
-    // A catalog-only stored row has no chat to select, so the card routes to
-    // the sidebar's open-attempt path.
-    act(() => {
-      cards[0]?.querySelector<HTMLButtonElement>(".th-overview-card-open")?.click();
-    });
-    expect(onOpenSession).toHaveBeenCalledTimes(1);
-    expect(onOpenSession).toHaveBeenCalledWith(expect.objectContaining({ id: "ws-1", chats: [] }), catalogRow);
-  });
-
-  it("lists an idle live session without a running badge and hides the working count", async () => {
-    const fetchMock = vi.fn(async () => okResponse(IDLE_LIVE_RESPONSE));
-    vi.stubGlobal("fetch", fetchMock);
-
-    renderSidebar(() => undefined, {
-      chats: [],
-      sessions: [catalogRow],
-    });
-
-    // Poll lands: the attached session is live but runs no agents. It is
-    // listed like every live session, with no running badge, and the
-    // running-agent count hides entirely rather than showing a zero.
-    await act(async () => {});
-    const pinned = container.querySelector(".th-sidebar-live");
-    expect(pinned).not.toBeNull();
-    expect(pinned?.querySelector(".th-sidebar-live-count")).toBeNull();
-    const cards = pinned?.querySelectorAll<HTMLElement>(".th-overview-card");
-    expect(cards).toHaveLength(1);
-    expect(cards?.[0]?.textContent).toContain("Idle attached session");
-    expect(cards?.[0]?.querySelector(".th-overview-card-running")).toBeNull();
-  });
-
-  it("shows an unattached daemon session's running work on the tree chip and the section card together", async () => {
-    // The live feed carries the auto-enrolled chat's id with the main agent
-    // working and two child agents: the tree row's running chip and the
-    // pinned section card must both surface that count.
-    const fetchMock = vi.fn(async () => okResponse(DAEMON_LIVE_RESPONSE));
-    vi.stubGlobal("fetch", fetchMock);
-
-    renderSidebar(() => undefined, {
-      chats: [{ id: "chat-daemon", name: "Daemon-enrolled chat", provider: "omo" }],
-      sessions: [{ id: "chat-daemon", name: "Daemon-enrolled chat", source: "stored", recencyMs: 5 }],
-    });
-
-    await act(async () => {});
-    const rowChip = container.querySelector(".th-tree-children .th-tree-running");
-    expect(rowChip?.textContent).toBe("2");
-    expect(container.querySelector(".th-tree-running--workspace")?.textContent).toBe("2");
-    const pinned = container.querySelector(".th-sidebar-live");
-    expect(pinned).not.toBeNull();
-    expect(pinned?.querySelector(".th-sidebar-live-count")?.textContent).toBe("2");
-    const daemonCard = [...(pinned?.querySelectorAll<HTMLElement>(".th-overview-card") ?? [])]
-      .find((card) => card.querySelector(".th-overview-card-name")?.textContent === "Daemon-enrolled chat");
-    expect(daemonCard?.querySelector(".th-overview-card-running")?.textContent).toBe("2");
-  });
-
-  it("shows the tree live dot from the shared poller's live-session membership", async () => {
+  it("renders each live conversation once in the tree and preserves stored-chat activation", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => okResponse(LIVE_RESPONSE)));
-    renderSidebar(() => undefined);
-
-    await act(async () => {});
-    const row = Array.from(container.querySelectorAll<HTMLElement>(".th-tree-children > .th-tree-node"))
-      .find((node) => node.textContent?.includes("Stored session"));
-    expect(row?.querySelector(".th-tree-live")).not.toBeNull();
-  });
-
-  it("keeps the tree badge-less when the live poll reports nothing openable", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => okResponse({
-      sessions: [{ id: "durable-uuid-9", title: "Ghost elsewhere", running: { agents: 2 }, done: 0 }],
-    })));
-    renderSidebar(() => undefined, { chats: [] });
-
+    const onSelect = vi.fn();
+    renderSidebar(onSelect, { activeId: "tm-1" });
     await act(async () => {});
     expect(container.querySelector(".th-sidebar-live")).toBeNull();
-    expect(container.querySelector(".th-tree-children .th-tree-running")).toBeNull();
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(container.querySelectorAll('[data-session-id="tm-1"]')).toHaveLength(1);
+    expect(container.querySelectorAll(".th-tree-node--active")).toHaveLength(1);
+    expect(container.querySelectorAll(".th-tree-indicator")).toHaveLength(1);
+    expect(container.querySelector('.th-tree-placed[aria-label="sidebar.tm.openInPane"]')).not.toBeNull();
+    const row = container.querySelector('[data-session-id="tm-1"]');
+    expect(row?.querySelector(".th-tree-running")?.textContent).toBe("1");
+    expect(container.querySelector(".th-tree-running--workspace")?.textContent).toBe("1");
+    act(() => row?.querySelector<HTMLButtonElement>(".th-tree-activation")?.click());
+    expect(onSelect).toHaveBeenCalledExactlyOnceWith(workspace, workspace.chats[0]);
+    expect([...container.querySelectorAll<HTMLButtonElement>(".th-sidebar-nav-actions button")].map(button => button.title))
+      .toEqual(["sidebar.addWorkspace", "sidebar.collapse"]);
+  });
+
+  it("keeps working-first live order and idle connection without a running chip", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => okResponse(MIXED_LIVE_RESPONSE)));
+    renderSidebar(() => undefined, { chats: [], sessions: [catalogRow, secondCatalogRow, thirdCatalogRow] });
+    await act(async () => {});
+    const rows = [...container.querySelectorAll<HTMLElement>("[data-session-id]")];
+    expect(rows.map(row => row.dataset["sessionId"])).toEqual(["disk-1", "disk-3", "disk-2"]);
+    expect(rows[0]?.querySelector(".th-tree-running")).not.toBeNull();
+    expect(rows[1]?.querySelector(".th-tree-running")).toBeNull();
+    expect(rows[1]?.querySelector(".th-tree-live")).not.toBeNull();
+    expect(rows[2]?.querySelector(".th-tree-running")).toBeNull();
+  });
+
+  it("excludes unresolvable engine identities as before", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => okResponse({ sessions: [{ id: "uuid", title: "Unopenable", running: { agents: 2 } }] })));
+    renderSidebar(() => undefined, { chats: [], sessions: [catalogRow] });
+    await act(async () => {});
+    expect(container.querySelector('[data-session-id="uuid"]')).toBeNull();
     expect(container.querySelector(".th-tree-running--workspace")).toBeNull();
+  });
+
+  it("opens catalog-only conversations, exposes failure and retries without a second row", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => okResponse(IDLE_LIVE_RESPONSE)));
+    const onOpenSession = vi.fn().mockRejectedValueOnce(new Error("load failed")).mockResolvedValue("opened");
+    renderSidebar(() => undefined, { chats: [], sessions: [catalogRow], onOpenSession });
+    await act(async () => {});
+    const row = container.querySelector('[data-session-id="disk-1"]');
+    await act(async () => row?.querySelector<HTMLButtonElement>(".th-tree-activation")?.click());
+    expect(onOpenSession).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ id: "ws-1" }), catalogRow);
+    expect(row?.querySelector('[role="status"]')?.textContent).toContain("sidebar.tm.openFailed");
+    await act(async () => row?.querySelector<HTMLButtonElement>(".th-tree-retry")?.click());
+    expect(onOpenSession).toHaveBeenCalledTimes(2);
+    expect(row?.querySelector('[role="status"]')).toBeNull();
+    expect(container.querySelectorAll('[data-session-id="disk-1"]')).toHaveLength(1);
+  });
+
+  it("keeps a catalog open pending on its one row and blocks duplicate activation", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => okResponse(IDLE_LIVE_RESPONSE)));
+    let resolveOpen: (() => void) | undefined;
+    const pending = new Promise<void>(resolve => { resolveOpen = resolve; });
+    const onOpenSession = vi.fn(() => pending);
+    renderSidebar(() => undefined, { chats: [], sessions: [catalogRow], onOpenSession });
+    await act(async () => {});
+    const button = container.querySelector<HTMLButtonElement>('[data-session-id="disk-1"] .th-tree-activation')!;
+    act(() => { button.click(); button.click(); });
+    expect(onOpenSession).toHaveBeenCalledTimes(1);
+    expect(button.disabled).toBe(true);
+    expect(button.getAttribute("aria-busy")).toBe("true");
+    expect(container.querySelector('[role="status"]')?.textContent).toBe("sidebar.tm.opening");
+    await act(async () => resolveOpen?.());
+    expect(button.disabled).toBe(false);
+    expect(container.querySelector('[role="status"]')).toBeNull();
+  });
+
+  it("includes live stored chats absent from the paged catalog exactly once", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => okResponse(DAEMON_LIVE_RESPONSE)));
+    renderSidebar(() => undefined, { chats: [{ id: "chat-daemon", name: "Daemon-enrolled chat", provider: "omo" }], sessions: [] });
+    await act(async () => {});
+    expect(container.querySelectorAll('[data-session-id="chat-daemon"]')).toHaveLength(1);
+    expect(container.querySelector('[data-session-id="chat-daemon"] .th-tree-running')?.textContent).toBe("2");
+    expect(container.querySelector(".th-tree-running--workspace")?.textContent).toBe("2");
   });
 });

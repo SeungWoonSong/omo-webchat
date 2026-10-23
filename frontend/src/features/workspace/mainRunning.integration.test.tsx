@@ -115,43 +115,41 @@ describe("main running transport and sidebar", () => {
     await mount(true);
     // Idle live sessions stay listed (working-first order); only the running
     // indicators disappear.
-    expect(container.querySelector(".th-sidebar-live")).not.toBeNull();
-    expect(container.querySelectorAll(".th-overview-card")).toHaveLength(1);
-    expect(container.querySelector(".th-overview-card-running")).toBeNull();
+    expect(container.querySelector(".th-tree")).not.toBeNull();
+    expect(container.querySelectorAll(".th-tree-children > .th-tree-node")).toHaveLength(1);
+    expect(container.querySelector(".th-tree-children .th-tree-running")).toBeNull();
     expect(container.querySelector(".th-tree-children .th-tree-node")).not.toBeNull();
     expect(container.querySelector(".th-tree-children .th-tree-running")).toBeNull();
     push({ active: true });
-    expect(container.querySelectorAll(".th-overview-card")).toHaveLength(1);
+    expect(container.querySelectorAll(".th-tree-children > .th-tree-node")).toHaveLength(1);
     expect(container.querySelector(".th-tree-children .th-tree-running")).not.toBeNull();
     expect(container.querySelector(".th-tree-running--workspace")).not.toBeNull();
-    expect(container.querySelector(".th-overview-card-running")).not.toBeNull();
+    expect(container.querySelector(".th-tree-children .th-tree-running")).not.toBeNull();
     // Main-only work runs zero child agents: the count hides rather than
     // showing a misleading zero next to the sessions label.
-    expect(container.querySelector(".th-sidebar-live-count")).toBeNull();
+    expect(container.querySelector(".th-tree-running--workspace")?.textContent ?? "").toBe("");
     expect(summaries[0]).toMatchObject({ active: true, runningCount: 0 });
     expect(container.querySelector(".th-tree-live")).not.toBeNull();
     expect(container.querySelector(".th-tree-placed--on")).not.toBeNull();
     push({ running: { agents: 7 } });
     expect(summaries[0]).toMatchObject({ active: true, runningCount: 7 });
-    for (const selector of [".th-sidebar-live-count", ".th-overview-card-running", ".th-tree-children .th-tree-running", ".th-tree-running--workspace"]) {
+    for (const selector of [".th-tree-running--workspace", ".th-tree-children .th-tree-running"]) {
       expect(container.querySelector(selector)?.textContent).toBe("7");
     }
     // The visible count carries an accessible name saying what it counts.
-    expect(container.querySelector(".th-sidebar-live-count")?.getAttribute("aria-label")).toBe("overview.runningAria");
+    expect(container.querySelector(".th-tree-running--workspace")?.getAttribute("aria-label")).toBe("sidebar.ws.runningAgents");
     expect(container.querySelector(".th-tree-children .th-tree-running")?.getAttribute("aria-label"))
       .toBe("sidebar.tm.runningAgents");
     push({ active: false });
     expect(summaries[0]).toMatchObject({ active: false, runningCount: 7 });
-    expect(container.querySelector(".th-overview-card-running")?.textContent).toBe("7");
     expect(container.querySelector(".th-tree-children .th-tree-running")?.textContent).toBe("7");
     push({ running: { agents: 0 } });
-    expect(container.querySelector(".th-sidebar-live")).not.toBeNull();
-    expect(container.querySelector(".th-overview-card-running")).toBeNull();
+    expect(container.querySelector(".th-tree")).not.toBeNull();
     expect(container.querySelector(".th-tree-children .th-tree-running")).toBeNull();
     push({ active: true });
     push({ active: false });
-    expect(container.querySelector(".th-sidebar-live")).not.toBeNull();
-    expect(container.querySelectorAll(".th-overview-card")).toHaveLength(1);
+    expect(container.querySelector(".th-tree")).not.toBeNull();
+    expect(container.querySelectorAll(".th-tree-children > .th-tree-node")).toHaveLength(1);
     expect(container.querySelector(".th-tree-live")).not.toBeNull();
   });
 
@@ -224,18 +222,17 @@ describe("main running transport and sidebar", () => {
     expect(infos).toMatchObject([{ id: "s1", active: value }]);
     expect(summaries[0]).toMatchObject({ id: "s1", active: value, runningCount: 0 });
     if (value) {
-      expect(container.querySelectorAll(".th-overview-card")).toHaveLength(1);
-      expect(container.querySelector(".th-overview-card-running")).not.toBeNull();
+      expect(container.querySelectorAll(".th-tree-children > .th-tree-node")).toHaveLength(1);
       expect(container.querySelector(".th-tree-children .th-tree-running")).not.toBeNull();
       expect(container.querySelector(".th-tree-running--workspace")).not.toBeNull();
-      expect(container.querySelector(".th-sidebar-live-count")).toBeNull();
+      expect(container.querySelector(".th-tree-running--workspace")?.textContent ?? "").toBe("");
     } else {
       // Idle sessions remain listed; they just carry no running badge, and a
       // zero running-agent count is not rendered at all.
-      expect(container.querySelector(".th-sidebar-live")).not.toBeNull();
-      expect(container.querySelectorAll(".th-overview-card")).toHaveLength(1);
-      expect(container.querySelector(".th-overview-card-running")).toBeNull();
-      expect(container.querySelector(".th-sidebar-live-count")).toBeNull();
+      expect(container.querySelector(".th-tree")).not.toBeNull();
+      expect(container.querySelectorAll(".th-tree-children > .th-tree-node")).toHaveLength(1);
+      expect(container.querySelector(".th-tree-children .th-tree-running")).toBeNull();
+      expect(container.querySelector(".th-tree-running--workspace")?.textContent ?? "").toBe("");
       expect(container.querySelector(".th-tree-children .th-tree-node")).not.toBeNull();
       expect(container.querySelector(".th-tree-children .th-tree-running")).toBeNull();
     }

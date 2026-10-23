@@ -11,15 +11,15 @@
   position: relative;
 }
 
-/* Desktop sidebar rows (DESIGN.md "Spacing scale"): 36px minimum height, 8px
-   inline padding, 8px between icon and label, 2px between adjacent rows. */
+/* The shell owns the inline inset: rows add only the fixed icon slot and
+   8px label gap, with one 20px step for children. */
 .th-tree-node {
   display: flex;
   position: relative;
   align-items: center;
   gap: var(--th-space-2);
   min-height: var(--th-space-9);
-  padding: 0 var(--th-space-2);
+  padding: 0;
   border-radius: var(--th-radius-sm);
   cursor: pointer;
   user-select: none;
@@ -38,7 +38,7 @@
   /* The chevron glyph stays compact; only its button box grows, centred
      inside the already-44px row. */
   .th-tree-chevron {
-    min-width: var(--th-space-11);
+    min-width: 0;
     min-height: var(--th-space-11);
     align-items: center;
     justify-content: center;
@@ -156,12 +156,6 @@
   }
 }
 
-/* Coarse pointers (G40) narrow the gaps only; nested session rows retain
-   their own indentation and 44px controls. */
-.th-tree--touch .th-tree-node {
-  gap: var(--th-space-1);
-}
-
 .th-tree-chevron {
   display: inline-flex;
   flex: none;
@@ -176,6 +170,9 @@
 .th-tree-icon {
   position: relative;
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--th-space-5);
   flex: none;
   color: var(--th-muted);
 }
@@ -202,10 +199,12 @@
   color: var(--th-text-dim);
 }
 
-/* Placed in a pane: a neutral filled dot; unplaced rows keep the slot empty
-   so every session glyph stays on one column. */
+/* Placement overlays the child gutter, never adding another indent. */
 .th-tree-placed {
-  flex: none;
+  position: absolute;
+  left: calc(-1 * var(--th-space-2));
+  top: 50%;
+  transform: translateY(-50%);
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -273,31 +272,18 @@
   color: var(--th-text);
 }
 
-/* A workspace's single disclosure owns folder and name. The folder glyph
-   itself carries the open/closed state (no separate caret), at a fixed
-   leading column, and the whole run from the row edge is the toggle
-   target. The row box reaches into the shell gutter on both sides so the
-   folder glyph and the trailing count pill keep equal edge insets. */
-.th-tree-workspace > .th-tree-node {
-  margin-inline: calc(-1 * var(--th-space-3));
-  padding-inline-start: var(--th-space-2);
-}
-
+/* A workspace's single disclosure owns folder and name on the same grid. */
 .th-tree-workspace-activation > .th-tree-icon svg {
   width: calc(var(--th-space-3) + var(--th-space-0-5));
   height: calc(var(--th-space-3) + var(--th-space-0-5));
 }
 
 .th-tree-workspace-activation {
-  gap: var(--th-space-1);
+  gap: var(--th-space-2);
 }
 
 .th-tree-workspace-activation .th-tree-label-text {
   flex: 1;
-}
-
-.th-tree--touch .th-tree-workspace > .th-tree-node {
-  margin-inline: calc(-1 * var(--th-space-2));
 }
 
 .th-tree-source {
@@ -471,30 +457,29 @@
 }
 
 .th-tree--touch .th-tree-workspace > .th-tree-node > .th-tree-actions {
-  margin-right: calc(var(--th-space-6) + var(--th-space-1));
+  margin-right: var(--th-space-8);
 }
 
 .th-tree--touch .th-tree-count-slot {
   display: grid;
   position: absolute;
-  right: var(--th-space-2);
+  right: 0;
   top: 50%;
-  width: calc(var(--th-space-6) + var(--th-space-1));
+  width: var(--th-space-8);
   transform: translateY(-50%);
   pointer-events: none;
 }
 
-/* Nesting reads through indentation alone; no guide line. A session's
-   leading dot starts under the workspace name. */
+/* Nesting reads through exactly one indentation step, without a guide line. */
 .th-tree-children {
   min-width: 0;
   margin: 0;
-  padding: 0;
+  padding: 0 0 0 var(--th-space-5);
   border: 0;
   display: flex;
   flex-direction: column;
   gap: var(--th-space-0-5);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .th-tree-children--closed {
@@ -554,3 +539,36 @@
   height: auto;
   padding: var(--th-space-0-5) var(--th-space-2);
 }
+
+/* One row grid at every pointer size: the icon slot and one child indent
+   never depend on whether actions, connection or placement are present. */
+.th-tree--touch .th-tree-node { gap: var(--th-space-2); }
+.th-tree-count, .th-tree-running {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--th-space-6);
+  min-height: var(--th-space-6);
+  min-width: var(--th-space-8);
+  padding-block: 0;
+}
+.th-tree-children .th-tree-node { flex-wrap: wrap; }
+.th-tree-open-state {
+  flex-basis: 100%;
+  padding-block: var(--th-space-1);
+  color: var(--th-muted);
+  font-size: var(--th-type-micro-size);
+}
+.th-tree-retry {
+  min-height: var(--th-space-11);
+  padding-inline: var(--th-space-2);
+  color: var(--th-text);
+  background: var(--th-hover);
+  border-radius: var(--th-radius-sm);
+}
+@media (max-width: 768px) {
+  .th-tree-node, .th-tree-activation, .th-tree-more { min-height: var(--th-space-11); }
+}
+
+.th-tree-inline-actions { display: inline-flex; gap: var(--th-space-0-5); }
+.th-tree-children .th-tree-overflow { flex-direction: row; }
