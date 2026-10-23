@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"time"
 
@@ -163,6 +164,11 @@ func (s *Server) handleAccountCancel(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleAccountAPIKey(w http.ResponseWriter, r *http.Request) {
+	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil || mediaType != "application/json" {
+		writeError(w, http.StatusUnsupportedMediaType, "application/json required")
+		return
+	}
 	w.Header().Set("Cache-Control", "no-store")
 	if r.PathValue("provider") != "anthropic" {
 		s.accountError(w, accounts.ErrInvalid)

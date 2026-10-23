@@ -77,7 +77,7 @@ func New(ctx context.Context, cfg *config.Config, cursors *cursorstore.Store, se
 
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/login", s.handleLogin)
+	mux.Handle("POST /api/login", requireSameOrigin(http.HandlerFunc(s.handleLogin)))
 
 	protected := http.NewServeMux()
 	protected.HandleFunc("POST /api/logout", s.handleLogout)
@@ -126,7 +126,7 @@ func (s *Server) Handler() http.Handler {
 	protected.HandleFunc("POST /api/system/update", s.handleSystemUpdate)
 	protected.HandleFunc("POST /api/system/engine/restart", s.handleSystemEngineRestart)
 
-	mux.Handle("/api/", s.sessions.Middleware(protected))
+	mux.Handle("/api/", s.sessions.Middleware(requireSameOrigin(protected)))
 	mux.Handle("/", s.staticHandler())
 	return mux
 }

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/DevNewbie1826/omo-webchat/internal/omorpc"
 )
@@ -140,7 +141,13 @@ func (s *Service) List(ctx context.Context) ([]Provider, error) {
 		if err := call(ctx, e, omorpc.GetProviderAccounts{SessionID: sid, Provider: p.ID}, &accounts); err != nil {
 			return nil, err
 		}
+		p.Name = limitAccountLabel(p.Name)
+		p.KeyHint = trailingVisibleHint(p.KeyHint)
 		p.Accounts = accounts.Accounts
+		for i := range p.Accounts {
+			p.Accounts[i].Name = limitAccountLabel(p.Accounts[i].Name)
+			p.Accounts[i].DisplayName = limitAccountLabel(p.Accounts[i].DisplayName)
+		}
 		if p.Accounts == nil {
 			p.Accounts = []Account{}
 		}
@@ -256,4 +263,25 @@ func (s *Service) consume(ctx context.Context, f *Flow) {
 			}
 		}
 	}
+}
+
+func limitAccountLabel(value string) string {
+	chars := []rune(value)
+	if len(chars) > 80 {
+		chars = chars[:80]
+	}
+	return string(chars)
+}
+
+func trailingVisibleHint(value string) string {
+	chars := make([]rune, 0, 4)
+	for _, char := range value {
+		if unicode.IsPrint(char) && !unicode.IsSpace(char) {
+			chars = append(chars, char)
+		}
+	}
+	if len(chars) > 4 {
+		chars = chars[len(chars)-4:]
+	}
+	return string(chars)
 }

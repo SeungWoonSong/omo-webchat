@@ -84,7 +84,7 @@ export function AccountsPanel({ onClose }: { readonly onClose: () => void }) {
             return <li key={p.id} data-provider={p.id}>
               <div className="th-accounts-provider">
                 <div className="th-accounts-provider-title"><h3>{t(`accounts.provider.${p.id}`)}</h3><span className="th-accounts-badge" data-status={status}>{t(`accounts.${status}`)}</span></div>
-                <button className="th-btn th-btn--primary" disabled={busy || loading || p.id === "anthropic" && keyForm} onClick={() => { setResult(""); setKeyResult(""); if (p.id === "anthropic") setKeyForm(true); else void login.start(p.id); }}>{t(p.id === "anthropic" ? "accounts.apiKeyAdd" : "accounts.add")}</button>
+                <button className="th-btn th-btn--ghost" disabled={busy || loading || p.id === "anthropic" && keyForm} onClick={() => { setResult(""); setKeyResult(""); if (p.id === "anthropic") setKeyForm(true); else void login.start(p.id); }}>{t(p.id === "anthropic" ? "accounts.apiKeyAdd" : "accounts.add")}</button>
               </div>
               {p.id === "anthropic" && p.keyHint && <p className="th-accounts-hint">{t("accounts.apiKeyDefault", { hint: `…${p.keyHint}` })}</p>}
               {p.id === "anthropic" && keyForm && <AccountAPIKeyForm provider={p} onBusy={setChanging} onCancel={() => setKeyForm(false)} onSaved={(saved) => {

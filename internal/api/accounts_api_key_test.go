@@ -75,6 +75,8 @@ func TestAccountAPIKeyEndpointSecretsAndAuth(t *testing.T) {
 			handler := server.Handler()
 			send := func(provider, body string, authenticated bool) *httptest.ResponseRecorder {
 				r := httptest.NewRequest("POST", "/api/accounts/"+provider+"/api-key", strings.NewReader(body))
+				r.Header.Set("Content-Type", "application/json")
+				r.Header.Set("Origin", "http://"+r.Host)
 				if authenticated {
 					r.AddCookie(&http.Cookie{Name: auth.CookieName, Value: token})
 				}
@@ -158,6 +160,8 @@ func TestAccountAPIKeyRPCSecrets(t *testing.T) {
 			daemon.FailNext("login_api_key", sentinel)
 		}
 		request := httptest.NewRequest("POST", "/api/accounts/anthropic/api-key", strings.NewReader(`{"key":"`+sentinel+`"}`))
+		request.Header.Set("Content-Type", "application/json; charset=utf-8")
+		request.Header.Set("Origin", "http://"+request.Host)
 		request.AddCookie(&http.Cookie{Name: auth.CookieName, Value: token})
 		response := httptest.NewRecorder()
 		server.Handler().ServeHTTP(response, request)

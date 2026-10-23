@@ -248,6 +248,7 @@ it("confirms replacement only for an OAuth credential and clears state after sav
   expect(accounts.listAccountProviders).toHaveBeenCalledTimes(2);
   expect(document.body.textContent).toContain("API key saved (…abcd)");
   expect(document.body.textContent).toContain("Replaced the previous");
+  expect(document.body.innerHTML).not.toContain(fakeKey);
   await act(async () => button("Add API key").click());
   expect(document.querySelector<HTMLInputElement>("#accounts-api-key")?.value).toBe("");
 });
@@ -280,9 +281,48 @@ it("keeps subscription rows unchanged and scopes a hint only to a sole API accou
   for (const identity of document.querySelectorAll('.th-accounts-identity')) expect(identity.textContent).not.toContain("…abcd");
   expect(document.querySelector('[data-provider=anthropic]')?.textContent).toContain("Default key …abcd");
 });
-it("uses identical client key validation boundaries without persisting credentials", () => {
+it("uses identical client key validation boundaries", () => {
   for (const value of ["", " ", "sk-other-test", "sk-ant-a b", "sk-ant-a\nb", "sk-ant-a\u0000b", "sk-ant-a\u2003b", "sk-ant-" + "a".repeat(506), "sk-ant-" + "한".repeat(169)]) expect(accounts.validAnthropicAPIKey(value)).toBe(false);
   expect(accounts.validAnthropicAPIKey(`  ${fakeKey}\n`)).toBe(true);
   expect(accounts.validAnthropicAPIKey("sk-ant-" + "a".repeat(505))).toBe(true);
-  expect(JSON.stringify(localStorage)).not.toContain(fakeKey);
+
+});
+
+it("submits through the real account request without persisting the sentinel key", async () => {
+  const real = await vi.importActual<typeof accounts>("../lib/accounts");
+  vi.mocked(accounts.saveAccountAPIKey).mockImplementationOnce(real.saveAccountAPIKey);
+  const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true, keyHint: "abcd" }), { status: 200, headers: { "Content-Type": "application/json" } }));
+  vi.stubGlobal("fetch", fetch);
+  const sentinel = "sk-ant-test-NOT-PERSISTED-SENTINEL-000000abcd";
+  await openAPIKey(); await fillAPIKey(sentinel);
+  await act(async () => button("Save").click());
+  expect(accounts.saveAccountAPIKey).toHaveBeenCalledWith(sentinel);
+  expect(fetch).toHaveBeenCalledTimes(1);
+  const [url, init] = fetch.mock.calls[0]!;
+  expect(url).toBe("/api/accounts/anthropic/api-key");
+  expect(init.method).toBe("POST");
+  expect(JSON.parse(init.body)).toEqual({ key: sentinel });
+  expect(document.querySelector("#accounts-api-key")).toBeNull();
+  expect(document.body.textContent).toContain("API key saved (…abcd)");
+  for (const storage of [localStorage, sessionStorage]) {
+    for (let i = 0; i < storage.length; i++) {
+      const key = storage.key(i)!;
+      expect(key).not.toContain(sentinel);
+      expect(storage.getItem(key)).not.toContain(sentinel);
+    }
+  }
+  expect(document.cookie).not.toContain(sentinel);
+  expect(location.href).not.toContain(sentinel);
+  expect(document.body.innerHTML).not.toContain(sentinel);
+});
+it("keeps all provider add buttons secondary and only the open form Save primary", async () => {
+  apiProvider("api_key", 1); await render();
+  for (const add of document.querySelectorAll(".th-accounts-provider > button")) {
+    expect(add.classList.contains("th-btn--ghost")).toBe(true);
+    expect(add.classList.contains("th-btn--primary")).toBe(false);
+  }
+  expect(document.querySelectorAll(".th-btn--primary")).toHaveLength(0);
+  await act(async () => button("Add API key").click());
+  expect(document.querySelectorAll(".th-btn--primary")).toHaveLength(1);
+  expect(button("Save").classList.contains("th-btn--primary")).toBe(true);
 });
