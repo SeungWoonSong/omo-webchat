@@ -61,11 +61,11 @@ describe("TranscriptNoticeRow transcript-derived notice kinds", () => {
       expect(time?.textContent).toMatch(/^\d{2}:\d{2}:\d{2}$/);
     });
 
-    it("collapses the summary to one line behind an expandable disclosure", () => {
+    it("keeps the full summary open when collapse is OFF", () => {
       renderRow(notice(1, "compaction_summary", { tokensBefore: 100, summary }));
       const details = container.querySelector("details");
       expect(details).not.toBeNull();
-      expect(details?.hasAttribute("open")).toBe(false);
+      expect(details?.hasAttribute("open")).toBe(true);
       const toggle = details?.querySelector("summary");
       expect(toggle?.textContent).toContain("First line of the summary.");
       // Exact text passthrough: the full summary is present verbatim in the body.
@@ -73,11 +73,15 @@ describe("TranscriptNoticeRow transcript-derived notice kinds", () => {
       expect(full?.textContent).toBe(summary);
     });
 
-    it("expands to reveal the full summary text", () => {
+    it("allows manually closing and reopening the summary with collapse OFF", () => {
       renderRow(notice(1, "compaction_summary", { tokensBefore: 100, summary }));
       const details = container.querySelector("details");
       const toggle = details?.querySelector("summary");
       expect(toggle).not.toBeNull();
+      act(() => {
+        toggle?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+      expect(details?.hasAttribute("open")).toBe(false);
       act(() => {
         toggle?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       });

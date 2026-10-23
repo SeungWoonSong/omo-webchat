@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../i18n";
-import { useTheme } from "../app-config";
-import { IconActivity, IconPower, IconSettings, IconUser } from "./icons";
+import { useNoticePreference, useTheme } from "../app-config";
+import { IconActivity, IconCheck, IconMessage, IconPower, IconSettings, IconUser } from "./icons";
 import { FONT_PRESETS, FONT_SIZE_MAX, FONT_SIZE_MIN } from "../lib/font";
 import { THEME_OPTIONS } from "../lib/theme";
 import { AccountsPanel } from "./AccountsPanel";
@@ -14,6 +14,7 @@ export interface SettingsMenuProps {
 export function SettingsMenu({ onOpenStats, onOpenEngineRestart }: SettingsMenuProps) {
   const { t, lang, setLang, font, setFont, fontSize, setFontSize } = useT();
   const { theme, setTheme } = useTheme();
+  const { collapseSystemNotices, setCollapseSystemNotices } = useNoticePreference();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [accountsOpen, setAccountsOpen] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
@@ -132,6 +133,17 @@ export function SettingsMenu({ onOpenStats, onOpenEngineRestart }: SettingsMenuP
           </div>
 
           <div className="th-settings-divider" />
+          <button
+            type="button"
+            className="th-settings-item"
+            role="switch"
+            aria-checked={collapseSystemNotices}
+            onClick={() => setCollapseSystemNotices(!collapseSystemNotices)}
+          >
+            <IconMessage size={14} />
+            <span>{t("settings.collapseSystemNotices")}</span>
+            {collapseSystemNotices && <IconCheck size={14} />}
+          </button>
           <button
             type="button"
             className="th-settings-item"

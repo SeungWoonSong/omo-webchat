@@ -35,6 +35,7 @@ src/
 - `npm test` starts Vitest watch mode — non-interactive validation MUST use `npx vitest run` (or `npm test -- --run`).
 - No timing-sleep assertions; drive events and assert resulting state.
 - Do not read/write `localStorage` outside the established keys, and persist locale only via `persistLang`.
+- `th-collapse-system-notices` is an allowed fixed key, read/written only by `lib/noticePreferences.ts`. Values are `"true"` / `"false"`; missing or invalid values default to ON in this fork. Errors, warnings, banners and questions are never collapsed by this preference.
 
 ## COMMANDS
 ```bash

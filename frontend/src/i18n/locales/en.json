@@ -1,4 +1,8 @@
 {
+  "settings.collapseSystemNotices": "Collapse system notices",
+  "notice.systemTitle": "System notice",
+  "notice.modelProfileTitle": "Model profile",
+  "notice.summaryTitle": "Session summary",
   "accounts.title": "Accounts",
   "accounts.description": "Sign in to your own subscriptions. Credentials are stored by omo in your account, never in chat. Add another account at any time. Closing this panel cancels an unfinished login.",
   "accounts.refresh": "Refresh status",

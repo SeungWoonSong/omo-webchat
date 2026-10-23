@@ -2,7 +2,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { I18nContext, persistLang } from "../i18n";
+import { I18nContext, persistLang, translate } from "../i18n";
 import { useAppConfig } from "../app-config";
 import { SettingsMenu } from "./SettingsMenu";
 
@@ -61,7 +61,10 @@ describe("SettingsMenu engine restart item", () => {
     await renderMenu(() => undefined, () => undefined);
     openPanel();
     const items = panelItems();
-    expect(items.map((item) => item.textContent)).toEqual(["Accounts", "System status", "Restart omo engine"]);
+    expect(items.map((item) => item.textContent)).toEqual(
+      ["settings.collapseSystemNotices", "accounts.title", "settings.systemStats", "settings.engineRestart"]
+        .map((key) => translate("en", key)),
+    );
   });
 
   it("invokes only the restart callback and closes the panel", async () => {
@@ -83,7 +86,10 @@ describe("SettingsMenu engine restart item", () => {
     window.localStorage.setItem("th-lang", "ko");
     await renderMenu(() => undefined, () => undefined);
     openPanel();
-    expect(panelItems().map((item) => item.textContent)).toEqual(["계정", "시스템 상태", "omo 엔진 다시 시작"]);
+    expect(panelItems().map((item) => item.textContent)).toEqual(
+      ["settings.collapseSystemNotices", "accounts.title", "settings.systemStats", "settings.engineRestart"]
+        .map((key) => translate("ko", key)),
+    );
   });
 
   it.each([

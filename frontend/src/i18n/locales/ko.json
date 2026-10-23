@@ -1,4 +1,8 @@
 {
+  "settings.collapseSystemNotices": "시스템 알림 접기",
+  "notice.systemTitle": "시스템 알림",
+  "notice.modelProfileTitle": "모델 프로필",
+  "notice.summaryTitle": "세션 요약",
   "accounts.title": "계정",
   "accounts.description": "본인 구독 계정으로 로그인하세요. 인증 정보는 omo가 본인 계정에 저장하며 채팅에 남지 않습니다. 나중에도 계정을 추가할 수 있습니다. 이 창을 닫으면 진행 중인 로그인이 취소됩니다.",
   "accounts.refresh": "상태 새로고침",

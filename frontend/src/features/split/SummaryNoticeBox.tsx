@@ -1,3 +1,6 @@
+import { useT } from "../../i18n";
+import { NoticeDisclosure } from "./NoticeDisclosure";
+
 /** Receipt time of the entry, formatted as local HH:MM:SS. */
 function formatSummaryTime(at: number): string {
   const date = new Date(at);
@@ -14,6 +17,7 @@ export interface SummaryNoticeBoxProps {
   readonly tokensBefore?: number;
   /** Receipt/entry time (epoch ms); the time element is omitted when absent. */
   readonly at?: number;
+  readonly diagnostic?: boolean;
 }
 
 /**
@@ -23,9 +27,11 @@ export interface SummaryNoticeBoxProps {
  * expands to the full verbatim text. The receipt-time element stays on the
  * box whenever a timestamp is known.
  */
-export function SummaryNoticeBox({ label, summary, tokensBefore, at }: SummaryNoticeBoxProps) {
+export function SummaryNoticeBox({ label, summary, tokensBefore, at, diagnostic = false }: SummaryNoticeBoxProps) {
+  const { t } = useT();
   const firstLine = summary.split("\n", 1)[0] ?? "";
   return (
+    <NoticeDisclosure title={t("notice.summaryTitle")} disabled={diagnostic}>
     <div className="th-chat-notice th-alert th-alert--info" role="status">
       <div className="th-chat-notice-content">
         <span className="th-notice-title">{label}</span>
@@ -33,11 +39,12 @@ export function SummaryNoticeBox({ label, summary, tokensBefore, at }: SummaryNo
         {tokensBefore !== undefined && (
           <span className="th-notice-line">{`Tokens before compaction: ${tokensBefore}`}</span>
         )}
-        <details className="th-notice-summary">
+        <details className="th-notice-summary" open>
           <summary className="th-notice-summary-toggle">{firstLine}</summary>
           <span className="th-notice-line th-notice-summary-full">{summary}</span>
         </details>
       </div>
     </div>
+    </NoticeDisclosure>
   );
 }

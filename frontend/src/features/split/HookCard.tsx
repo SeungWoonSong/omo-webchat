@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useT } from "../../i18n";
+import { NoticeDisclosure } from "./NoticeDisclosure";
 
 interface HookCardProps {
   readonly hookType: string;
@@ -6,8 +8,19 @@ interface HookCardProps {
 }
 
 export function HookCard({ hookType, text }: HookCardProps) {
+  const { t } = useT();
   const [open, setOpen] = useState(false);
   const preview = text.length > 80 ? `${text.slice(0, 80)}…` : text;
+
+  if (hookType.startsWith("omo-model-profile:")) {
+    return (
+      <div data-hook-type={hookType}>
+        <NoticeDisclosure title={t("notice.modelProfileTitle")}>
+          <pre className="th-notice-full-text">{text}</pre>
+        </NoticeDisclosure>
+      </div>
+    );
+  }
 
   return (
     <div className="th-tool th-hook" data-hook-type={hookType}>

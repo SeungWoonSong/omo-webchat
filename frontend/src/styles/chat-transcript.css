@@ -1,3 +1,49 @@
+.th-notice-disclosure-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--th-space-2);
+  max-width: 100%;
+  padding: var(--th-space-2);
+  border: 0;
+  border-radius: var(--th-radius-sm);
+  background: transparent;
+  color: var(--th-muted);
+  font: inherit;
+  font-size: var(--th-type-secondary-size);
+  cursor: pointer;
+}
+
+.th-notice-disclosure-toggle > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.th-notice-disclosure-toggle > svg {
+  flex: none;
+}
+
+.th-notice-disclosure-toggle:hover {
+  background: var(--th-hover);
+}
+
+.th-notice-disclosure-toggle:focus-visible {
+  outline: 2px solid var(--th-accent);
+  outline-offset: 2px;
+}
+
+.th-notice-disclosure-toggle[aria-expanded="true"] > svg:last-child {
+  transform: rotate(90deg);
+}
+
+.th-notice-full-text {
+  margin: 0;
+  padding: var(--th-space-2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+}
+
 .th-chat-scrollport {
   position: relative;
   flex: 1 1 auto;

@@ -24,15 +24,26 @@ import {
   watchSystemTheme,
 } from "./lib/theme";
 import type { ThemeId } from "./lib/theme";
+import { readCollapseSystemNotices, persistCollapseSystemNotices } from "./lib/noticePreferences";
+
+export interface NoticePreference {
+  readonly collapseSystemNotices: boolean;
+  readonly setCollapseSystemNotices: (collapsed: boolean) => void;
+}
 
 export interface ThemePreference {
   readonly theme: ThemeId;
   readonly setTheme: (theme: ThemeId) => void;
 }
 
-export type AppConfigValue = I18nValue & ThemePreference;
+export type AppConfigValue = I18nValue & ThemePreference & NoticePreference;
 
 export function useAppConfig(): AppConfigValue {
+  const [collapseSystemNotices, setCollapseState] = useState(readCollapseSystemNotices);
+  const setCollapseSystemNotices = useCallback((next: boolean) => {
+    setCollapseState(next);
+    persistCollapseSystemNotices(next);
+  }, []);
   const [lang, setLangState] = useState<Lang>(detectLang);
   useDocumentLang(lang);
   const setLang = useCallback((next: Lang) => {
@@ -79,9 +90,18 @@ export function useAppConfig(): AppConfigValue {
   }, [theme]);
 
   return useMemo(
-    () => ({ lang, setLang, font, setFont, fontSize, setFontSize, theme, setTheme, t }),
-    [lang, setLang, font, setFont, fontSize, setFontSize, theme, setTheme, t],
+    () => ({ lang, setLang, font, setFont, fontSize, setFontSize, theme, setTheme, t, collapseSystemNotices, setCollapseSystemNotices }),
+    [lang, setLang, font, setFont, fontSize, setFontSize, theme, setTheme, t, collapseSystemNotices, setCollapseSystemNotices],
   );
+}
+
+/** Bare i18n consumers retain their original rendering, like the theme slice. */
+export function useNoticePreference(): NoticePreference {
+  const value = useContext(I18nContext) as I18nValue & Partial<NoticePreference>;
+  return {
+    collapseSystemNotices: value.collapseSystemNotices ?? false,
+    setCollapseSystemNotices: value.setCollapseSystemNotices ?? (() => undefined),
+  };
 }
 
 /**

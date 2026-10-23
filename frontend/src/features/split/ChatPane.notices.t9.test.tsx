@@ -54,7 +54,7 @@ describe("ChatPane hydrated summary entries", () => {
 		expect(box?.querySelector(".th-notice-time")?.textContent).toMatch(/^\d{2}:\d{2}:\d{2}$/);
 		const details = box?.querySelector("details");
 		expect(details).not.toBeNull();
-		expect(details?.hasAttribute("open")).toBe(false);
+		expect(details?.hasAttribute("open")).toBe(true);
 		expect(details?.querySelector(".th-notice-summary-full")?.textContent)
 			.toBe("Hydrated compaction summary.\nWith a second line.");
 	});

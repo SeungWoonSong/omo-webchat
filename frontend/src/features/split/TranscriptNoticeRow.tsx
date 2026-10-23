@@ -1,6 +1,7 @@
 import { useT } from "../../i18n";
 import type { ChatNotice } from "./useChatFrameState";
 import { SummaryNoticeBox } from "./SummaryNoticeBox";
+import { NoticeDisclosure } from "./NoticeDisclosure";
 
 export interface TranscriptNoticeRowProps {
   readonly notice: ChatNotice;
@@ -63,7 +64,34 @@ function payloadMessageText(payload: ChatNotice["payload"]): string | undefined 
   return undefined;
 }
 
+function isDiagnosticNotice(notice: ChatNotice): boolean {
+  // Keep all warnings and failures visible, even when an engine omits severity.
+  const diagnosticKind = /warning|error|fail|exhausted|aborted/.test(notice.kind)
+    || WARNING_LINE_KINDS.has(notice.kind)
+    || notice.kind === "auto_retry_start"
+    || notice.kind === "auto_retry_end"
+    || notice.kind === "question_closed_while_disconnected";
+  const diagnosticPayload = ["severity", "level", "notifyType", "type"].some((key) => {
+    const value = notice.payload?.[key];
+    return typeof value === "string" && /^(error|warning|warn)$/i.test(value);
+  }) || (typeof notice.payload?.["error"] === "string" && notice.payload["error"].length > 0)
+    || notice.payload?.["success"] === false;
+  return diagnosticKind || diagnosticPayload;
+}
+
 export function TranscriptNoticeRow({ notice }: TranscriptNoticeRowProps) {
+  const { t } = useT();
+  if (isDiagnosticNotice(notice) || notice.kind === "compaction_summary") {
+    return <NoticeContent notice={notice} />;
+  }
+  return (
+    <NoticeDisclosure title={t("notice.systemTitle")}>
+      <NoticeContent notice={notice} />
+    </NoticeDisclosure>
+  );
+}
+
+function NoticeContent({ notice }: TranscriptNoticeRowProps) {
   const { t } = useT();
   const payload = notice.payload;
 
@@ -102,6 +130,7 @@ export function TranscriptNoticeRow({ notice }: TranscriptNoticeRowProps) {
     return (
       <SummaryNoticeBox
         label="[compaction]"
+        diagnostic={isDiagnosticNotice(notice)}
         summary={typeof summaryValue === "string" ? summaryValue : ""}
         {...(typeof tokensValue === "number" ? { tokensBefore: tokensValue } : {})}
         at={notice.at}
