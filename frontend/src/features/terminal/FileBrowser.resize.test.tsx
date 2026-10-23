@@ -4,7 +4,7 @@ import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
 import { I18nContext } from "../../i18n";
 import { FileBrowser } from "./FileBrowser";
-import { fsList } from "./terminal";
+import { fsList, fsRead } from "./terminal";
 import { i18n, listing } from "./fileBrowserTestSupport";
 
 vi.mock("./terminal", () => ({
@@ -113,4 +113,29 @@ describe("FileBrowser resize", () => {
 
     expect(onWidthChange.mock.calls).toEqual([[344], [296]]);
   });
+  it("widens previews automatically and Escape exits fullscreen before closing", async () => {
+    vi.mocked(fsList).mockResolvedValue({ ...listing, entries: [{ name: "note.md", isDir: false, size: 8, modTime: "2026-01-01T00:00:00Z" }] });
+    vi.mocked(fsRead).mockResolvedValue({ content: "# Preview", size: 9 });
+    await act(async () => root.render(<I18nContext.Provider value={i18n}><FileBrowser key="preview" path="/work" wsId="ws" tmId="tm" onClose={() => undefined} notify={() => undefined} width={320} onWidthChange={() => undefined} /></I18nContext.Provider>));
+    await act(async () => container.querySelector<HTMLButtonElement>(".th-files-name--link")!.click());
+    const panel = container.querySelector<HTMLElement>(".th-files")!;
+    expect(panel.style.getPropertyValue("--th-files-width")).toBe("480px");
+    expect(container.querySelectorAll(".th-files-head")).toHaveLength(0);
+    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Expand"]')!.click());
+    expect(panel.classList.contains("th-files--expanded")).toBe(true);
+    act(() => panel.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+    expect(panel.classList.contains("th-files--expanded")).toBe(false);
+    expect(container.querySelector(".th-viewer")).not.toBeNull();
+    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Back / Close"]')!.click());
+    expect(panel.style.getPropertyValue("--th-files-width")).toBe("320px");
+  });
+
+  it("respects a previously resized preview width, including the default 320px", async () => {
+    vi.mocked(fsList).mockResolvedValue({ ...listing, entries: [{ name: "note.md", isDir: false, size: 8, modTime: "2026-01-01T00:00:00Z" }] });
+    vi.mocked(fsRead).mockResolvedValue({ content: "# Preview", size: 9 });
+    await act(async () => root.render(<I18nContext.Provider value={i18n}><FileBrowser key="custom" path="/work" wsId="ws" tmId="tm" onClose={() => undefined} notify={() => undefined} width={320} widthCustomized onWidthChange={() => undefined} /></I18nContext.Provider>));
+    await act(async () => container.querySelector<HTMLButtonElement>(".th-files-name--link")!.click());
+    expect(container.querySelector<HTMLElement>(".th-files")!.style.getPropertyValue("--th-files-width")).toBe("320px");
+  });
+
 });

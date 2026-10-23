@@ -81,7 +81,7 @@
 .th-files-path {
   flex: 1;
   min-width: 0;
-  font-family: var(--th-font-mono);
+  font-family: var(--th-font-sans);
   font-size: var(--th-type-label-size);
   font-weight: var(--th-weight-read);
   line-height: var(--th-type-label-line);
@@ -153,6 +153,7 @@
 }
 
 .th-files-list {
+  container: file-tree / inline-size;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -332,4 +333,8 @@
   .th-files-dl {
     opacity: 1;
   }
+}
+
+@container file-tree (max-width: 360px) {
+  .th-files-meta--dim { display: none; }
 }

@@ -463,5 +463,20 @@
   "approval.question.commentLabel": "Overall comment",
   "chat.composer.paletteHintNavigate": "to navigate",
   "chat.composer.paletteHintSelect": "to select",
-  "chat.composer.paletteHintClose": "to close"
+  "chat.composer.paletteHintClose": "to close",
+  "viewer.title": "File preview",
+  "viewer.back": "Back / Close",
+  "viewer.newTab": "Open in new tab",
+  "viewer.edit": "Edit",
+  "viewer.expand": "Expand",
+  "viewer.shrink": "Collapse",
+  "viewer.raw": "Raw",
+  "viewer.table": "Table",
+  "viewer.zoom": "Actual size",
+  "viewer.fit": "Fit to panel",
+  "viewer.unsupported": "Preview is not yet supported for this format.",
+  "viewer.size": "Size",
+  "viewer.modified": "Modified",
+  "viewer.rows": "Showing up to {n} rows · 100 columns",
+  "viewer.zip": "Download ZIP"
 }
