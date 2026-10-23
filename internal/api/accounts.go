@@ -53,6 +53,29 @@ func (s *Server) handleAccountStart(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"id": f.ID})
 }
 
+func (s *Server) handleAccountChange(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	if s.accounts == nil {
+		s.accountError(w, accounts.ErrUnavailable)
+		return
+	}
+	var req struct {
+		Name *string `json:"name"`
+	}
+	if decodeJSON(r, &req) != nil {
+		s.accountError(w, accounts.ErrInvalid)
+		return
+	}
+	err := s.accounts.Change(r.Context(), r.PathValue("provider"), accounts.Change{
+		Action: r.PathValue("action"), Name: req.Name,
+	})
+	if err != nil {
+		s.accountError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (s *Server) accountFlow(w http.ResponseWriter, r *http.Request) *accounts.Flow {
 	w.Header().Set("Cache-Control", "no-store")
 	if s.accounts == nil {

@@ -13,10 +13,13 @@ import (
 
 // fakeEngine preserves the event-before-reply ordering of the real RPC engine.
 type fakeEngine struct {
-	events  chan *omorpc.Event
-	answers chan omorpc.ExtensionUIResponse
-	closed  chan struct{}
-	once    sync.Once
+	events         chan *omorpc.Event
+	answers        chan omorpc.ExtensionUIResponse
+	closed         chan struct{}
+	once           sync.Once
+	changes        []omorpc.Command
+	failChange     bool
+	accountRemoved bool
 }
 
 func newFake() *fakeEngine {
@@ -38,11 +41,22 @@ func (e *fakeEngine) Call(_ context.Context, cmd omorpc.Command) (*omorpc.Respon
 		data = json.RawMessage(`{"providers":[{"id":"chatgpt-subscription","name":"ChatGPT","status":{"configured":true},"token":"must-not-leak"},{"id":"openai","name":"API key"},{"id":"chatgpt-subscription","name":"Duplicate registration"}]}`)
 	case omorpc.GetProviderAccounts:
 		data = json.RawMessage(`{"accounts":[{"name":"own","source":"oauth","accessToken":"must-not-leak"}]}`)
+		if e.accountRemoved {
+			data = json.RawMessage(`{"accounts":[]}`)
+		}
 	case omorpc.LoginStart:
 		e.emit(omorpc.AuthLoginEvent{Type: omorpc.EventAuthLoginURL, Provider: c.Provider, URL: "https://example.test/login"})
 		e.emit(omorpc.AuthLoginEvent{Type: "extension_ui_request", ID: "code", Method: "input", Title: "Code"})
 	case omorpc.LoginCancel:
 		e.emit(omorpc.AuthLoginEvent{Type: omorpc.EventAuthLoginEnd, Provider: c.Provider})
+	case omorpc.AccountRemove, omorpc.AccountPin:
+		e.changes = append(e.changes, cmd)
+		if e.failChange {
+			return &omorpc.Response{Success: false, Error: "private engine text"}, nil
+		}
+		if _, ok := cmd.(omorpc.AccountRemove); ok {
+			e.accountRemoved = true
+		}
 	}
 	return &omorpc.Response{Success: true, Data: data}, nil
 }
@@ -176,5 +190,78 @@ func TestDisconnectClosesEngine(t *testing.T) {
 	case <-e.closed:
 	case <-ctx.Done():
 		t.Fatal("engine not closed on disconnect")
+	}
+}
+
+func TestAccountChangeRoutesImmutableName(t *testing.T) {
+	for _, action := range []string{"remove", "pin"} {
+		t.Run(action, func(t *testing.T) {
+			s, e, ctx := service(t)
+			name := "saved-account"
+			if err := s.Change(ctx, "chatgpt-subscription", Change{Action: action, Name: &name}); err != nil {
+				t.Fatal(err)
+			}
+			if len(e.changes) != 1 {
+				t.Fatal("mutation not sent")
+			}
+			b, err := json.Marshal(e.changes[0])
+			if err != nil {
+				t.Fatal(err)
+			}
+			var got struct{ SessionID, Provider, Name string }
+			if json.Unmarshal(b, &got) != nil || got.SessionID != "private" || got.Provider != "chatgpt-subscription" || got.Name != name {
+				t.Fatalf("incorrect mutation: %s", b)
+			}
+			select {
+			case <-e.closed:
+			default:
+				t.Fatal("private connection leaked")
+			}
+		})
+	}
+}
+
+func TestRemoveFailureIsNotReportedAsSuccess(t *testing.T) {
+	s, e, ctx := service(t)
+	e.failChange = true
+	name := "saved-account"
+	if err := s.Change(ctx, "cursor", Change{Action: "remove", Name: &name}); !errors.Is(err, ErrUnavailable) {
+		t.Fatalf("got %v", err)
+	}
+	if e.accountRemoved {
+		t.Fatal("failed removal changed stored account")
+	}
+}
+
+func TestRemovedAccountIsAbsentFromList(t *testing.T) {
+	s, _, ctx := service(t)
+	name := "own"
+	if err := s.Change(ctx, "chatgpt-subscription", Change{Action: "remove", Name: &name}); err != nil {
+		t.Fatal(err)
+	}
+	rows, err := s.List(ctx)
+	if err != nil || len(rows) != 1 || len(rows[0].Accounts) != 0 {
+		t.Fatalf("rows=%+v err=%v", rows, err)
+	}
+}
+
+func TestInvalidAccountChangeNeverReachesEngine(t *testing.T) {
+	s, e, ctx := service(t)
+	if err := s.Change(ctx, "cursor", Change{Action: "remove"}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("got %v", err)
+	}
+	if len(e.changes) != 0 {
+		t.Fatal("invalid removal reached engine")
+	}
+}
+
+func TestUnpinSendsNullName(t *testing.T) {
+	s, e, ctx := service(t)
+	if err := s.Change(ctx, "cursor", Change{Action: "pin"}); err != nil {
+		t.Fatal(err)
+	}
+	c, ok := e.changes[0].(omorpc.AccountPin)
+	if !ok || c.Name != nil {
+		t.Fatal("unpin did not send null")
 	}
 }

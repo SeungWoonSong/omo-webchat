@@ -81,6 +81,7 @@ func (s *Server) Handler() http.Handler {
 	protected.HandleFunc("GET /api/auth/check", s.handleAuthCheck)
 	protected.HandleFunc("GET /api/accounts", s.handleAccounts)
 	protected.HandleFunc("POST /api/accounts/{provider}/login", s.handleAccountStart)
+	protected.HandleFunc("POST /api/accounts/manage/{provider}/{action}", s.handleAccountChange)
 	protected.HandleFunc("GET /api/accounts/logins/{loginId}/events", s.handleAccountEvents)
 	protected.HandleFunc("POST /api/accounts/logins/{loginId}/response", s.handleAccountResponse)
 	protected.HandleFunc("POST /api/accounts/logins/{loginId}/cancel", s.handleAccountCancel)

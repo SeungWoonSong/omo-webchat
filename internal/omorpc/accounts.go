@@ -36,6 +36,22 @@ type LoginCancel struct {
 
 func (LoginCancel) commandName() string { return CmdLoginCancel }
 
+type AccountRemove struct {
+	SessionID string `json:"sessionId"`
+	Provider  string `json:"provider"`
+	Name      string `json:"name"`
+}
+
+func (AccountRemove) commandName() string { return "account_remove" }
+
+type AccountPin struct {
+	SessionID string  `json:"sessionId"`
+	Provider  string  `json:"provider"`
+	Name      *string `json:"name"`
+}
+
+func (AccountPin) commandName() string { return "account_pin" }
+
 // AuthLoginEvent contains only browser-facing login information, never credentials.
 type AuthLoginEvent struct {
 	Type        string   `json:"type"`

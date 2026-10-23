@@ -4,7 +4,13 @@ export interface AccountProvider {
   readonly id: string;
   readonly name: string;
   readonly status: { readonly configured: boolean };
-  readonly accounts: readonly { readonly name: string; readonly displayName?: string; readonly blocked: boolean }[];
+  readonly accounts: readonly {
+    readonly name: string;
+    readonly displayName?: string;
+    readonly source?: string;
+    readonly blocked: boolean;
+    readonly pinned?: boolean;
+  }[];
 }
 
 export interface LoginEvent {
@@ -28,6 +34,8 @@ export const cancelAccountLogin = (id: string) =>
   apiVoid(`/api/accounts/logins/${encodeURIComponent(id)}/cancel`, { method: "POST" });
 export const answerAccountLogin = (id: string, body: { readonly id: string; readonly value?: string; readonly confirmed?: boolean }) =>
   apiVoid(`/api/accounts/logins/${encodeURIComponent(id)}/response`, { method: "POST", body });
+export const changeAccount = (provider: string, action: "remove" | "pin", name: string | null) =>
+  apiVoid(`/api/accounts/manage/${encodeURIComponent(provider)}/${action}`, { method: "POST", body: { name } });
 
 export function accountLoginEvents(id: string, receive: (event: LoginEvent) => void, fail: () => void): () => void {
   const source = new EventSource(`/api/accounts/logins/${encodeURIComponent(id)}/events`);
