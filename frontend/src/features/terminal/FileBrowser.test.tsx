@@ -58,10 +58,10 @@ describe("FileBrowser uploads", () => {
   });
 
   it("uploads selected files, prevents concurrent drops, and clears the picker", async () => {
-    const pendingUpload = deferred<void>();
+    const pendingUpload = deferred<readonly string[]>();
     vi.mocked(uploadFiles)
       .mockReturnValueOnce(pendingUpload.promise)
-      .mockResolvedValueOnce(undefined);
+      .mockResolvedValueOnce([]);
 
     const input = container.querySelector<HTMLInputElement>('input[type="file"]');
     const choose = container.querySelector<HTMLButtonElement>(".th-files-choose");
@@ -89,7 +89,7 @@ describe("FileBrowser uploads", () => {
     expect(uploadFiles).toHaveBeenCalledTimes(1);
 
     await act(async () => {
-      pendingUpload.resolve();
+      pendingUpload.resolve([]);
     });
     expect(input.value).toBe("");
     expect(choose.disabled).toBe(false);

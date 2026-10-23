@@ -65,7 +65,7 @@ export function FileViewer({ path, name, requestClose, onClose, notify, expanded
   };
   // A mounted editor consumes the new request; never pass it to a later editor.
   if (editing) return <>{closeButton && <div className="th-files-head"><span className="th-files-title">{t("files.title")}</span><span className="th-files-path">{workspaceRoot ? workspaceRelativePath(workspaceRoot, path.slice(0, path.lastIndexOf("/"))) : "./"}</span>{closeButton}</div>}<FileEditor path={path} name={name} {...(requestClose && handledCloseRef.current !== requestClose.id ? { requestClose } : {})} onClose={target => {
-    if (target === "browser") onClose(target); else setEditing(false);
+    if (target !== "editor") onClose(target); else setEditing(false);
   }} notify={notify} /></>;
   const url = rawUrl(path);
   const directory = workspaceRoot ? workspaceRelativePath(workspaceRoot, path.slice(0, path.lastIndexOf("/"))) : "./";

@@ -215,3 +215,72 @@ func TestHandlerRoutesAuthenticatedChatUpload(t *testing.T) {
 		t.Fatalf("uploaded content = %q, want routed upload", uploaded)
 	}
 }
+
+func TestUploadDirectoryAndDedupe(t *testing.T) {
+	s, st, ws := newChatCreateTestServer(t)
+	chat, err := st.NewChat(ws.ID, "upload", ws.Path, "", "omo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	outside := t.TempDir()
+	if err := os.Symlink(outside, filepath.Join(ws.Path, "escape")); err != nil {
+		t.Fatal(err)
+	}
+	upload := func(dir string) *httptest.ResponseRecorder {
+		t.Helper()
+		var body bytes.Buffer
+		form := multipart.NewWriter(&body)
+		if dir != "" {
+			if err := form.WriteField("dir", dir); err != nil {
+				t.Fatal(err)
+			}
+		}
+		part, err := form.CreateFormFile("files", "보고서.pdf")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := part.Write([]byte("original")); err != nil {
+			t.Fatal(err)
+		}
+		if err := form.Close(); err != nil {
+			t.Fatal(err)
+		}
+		req := httptest.NewRequest("POST", "/upload", &body)
+		req.Header.Set("Content-Type", form.FormDataContentType())
+		req.SetPathValue("wsId", ws.ID)
+		req.SetPathValue("chatId", chat.ID)
+		rec := httptest.NewRecorder()
+		s.handleUpload(rec, req)
+		return rec
+	}
+	for _, dir := range []string{"..", "a/../b", outside, "escape/nested"} {
+		if rec := upload(dir); rec.Code != 400 {
+			t.Fatalf("dir %q: %d %s", dir, rec.Code, rec.Body.String())
+		}
+	}
+	if _, err := os.Stat(filepath.Join(outside, "nested")); !os.IsNotExist(err) {
+		t.Fatalf("escaped: %v", err)
+	}
+	for _, dir := range []string{"", "uploads/nested"} {
+		for i, name := range []string{"보고서.pdf", "보고서 (1).pdf", "보고서 (2).pdf"} {
+			rec := upload(dir)
+			if rec.Code != 200 {
+				t.Fatalf("upload %d: %s", i, rec.Body.String())
+			}
+			var response struct {
+				Uploaded []string `json:"uploaded"`
+			}
+			if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
+				t.Fatal(err)
+			}
+			want := filepath.ToSlash(filepath.Join(dir, name))
+			if len(response.Uploaded) != 1 || response.Uploaded[0] != want {
+				t.Fatalf("paths = %v, want %s", response.Uploaded, want)
+			}
+			data, err := os.ReadFile(filepath.Join(ws.Path, want))
+			if err != nil || string(data) != "original" {
+				t.Fatalf("file: %s %v", data, err)
+			}
+		}
+	}
+}

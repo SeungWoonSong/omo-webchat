@@ -336,7 +336,7 @@
   "chat.header.splitRight": "오른쪽으로 분할",
   "chat.header.splitDown": "아래로 분할",
   "chat.header.closePane": "페인 닫기",
-  "chat.attach": "첨부",
+  "chat.attach": "파일 첨부",
   "chat.attachUnsupported": "이 모델은 이미지를 지원하지 않습니다",
   "chat.dropImage": "이미지를 여기에 드롭",
   "chat.removeAttach": "첨부 제거",
@@ -478,5 +478,15 @@
   "viewer.size": "크기",
   "viewer.modified": "수정 시간",
   "viewer.rows": "처음 {n}행 · 100열까지 표시",
-  "viewer.zip": "ZIP 다운로드"
+  "viewer.zip": "ZIP 다운로드",
+  "chat.dropFiles": "파일을 여기에 놓으세요",
+  "chat.uploadLimit": "요청당 최대 100 MiB (폼 데이터 포함)",
+  "chat.uploadUnavailable": "채팅 연결 후 첨부하세요",
+  "chat.uploadProgress": "{name} 업로드 진행률",
+  "chat.retryFile": "{name} 업로드 재시도",
+  "chat.removeFile": "{name} 첨부 제거",
+  "chat.openFile": "{name} 열기",
+  "chat.fileOpen": "열기",
+  "chat.fileMissing": "파일을 찾을 수 없습니다",
+  "chat.uploadNetworkError": "네트워크 오류 — 다시 시도해 주세요"
 }

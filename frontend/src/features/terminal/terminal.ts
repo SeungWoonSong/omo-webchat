@@ -1,4 +1,4 @@
-import { apiJson, apiRaw, apiVoid, qs } from "../../lib/api";
+import { notifyUnauthorized, ApiError, apiJson, apiRaw, apiVoid, qs } from "../../lib/api";
 import type { ChatProvider, Terminal } from "../workspace/workspace";
 
 export async function createTerminal(
@@ -26,13 +26,41 @@ export async function renameTerminal(wsId: string, tmId: string, name: string): 
   );
 }
 
-export async function uploadFiles(wsId: string, tmId: string, files: readonly File[]): Promise<void> {
+export interface UploadOptions {
+  readonly dir?: string;
+  readonly signal?: AbortSignal;
+  readonly onProgress?: (percent: number) => void;
+}
+export async function uploadFiles(wsId: string, tmId: string, files: readonly File[], options: UploadOptions = {}): Promise<readonly string[]> {
   const form = new FormData();
   for (const file of files) form.append("files", file, file.name);
-  await apiRaw(
-    `/api/workspaces/${encodeURIComponent(wsId)}/chats/${encodeURIComponent(tmId)}/upload`,
-    { method: "POST", body: form },
-  );
+  if (options.dir) form.append("dir", options.dir);
+  const url = `/api/workspaces/${encodeURIComponent(wsId)}/chats/${encodeURIComponent(tmId)}/upload`;
+  if (!options.onProgress) {
+    const response = await apiRaw(url, { method: "POST", body: form, ...(options.signal ? { signal: options.signal } : {}) });
+    return (await response.json() as { uploaded: string[] }).uploaded;
+  }
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const abort = (): void => xhr.abort();
+    const cleanup = (): void => options.signal?.removeEventListener("abort", abort);
+    xhr.open("POST", url);
+    xhr.upload.onprogress = event => { if (event.lengthComputable) options.onProgress?.(Math.round(event.loaded / event.total * 100)); };
+    xhr.onload = () => {
+      cleanup();
+      if (xhr.status === 401) notifyUnauthorized();
+      try {
+        const body = JSON.parse(xhr.responseText) as { uploaded: string[]; error?: string };
+        if (xhr.status < 200 || xhr.status >= 300) reject(new ApiError(xhr.status, body.error ?? xhr.statusText));
+        else resolve(body.uploaded);
+      } catch { reject(new ApiError(xhr.status, xhr.statusText || "Upload failed")); }
+    };
+    xhr.onerror = () => { cleanup(); reject(new TypeError("Network error")); };
+    xhr.onabort = () => { cleanup(); reject(new DOMException("Aborted", "AbortError")); };
+    options.signal?.addEventListener("abort", abort, { once: true });
+    if (options.signal?.aborted) { cleanup(); reject(new DOMException("Aborted", "AbortError")); return; }
+    xhr.send(form);
+  });
 }
 
 export interface FsEntry {

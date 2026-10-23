@@ -1,0 +1,36 @@
+.th-chat-file-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--th-space-1);
+  max-width: 100%;
+  padding: var(--th-space-0-5) var(--th-space-1);
+  border: 1px solid var(--th-border-visible);
+  border-radius: 6px;
+  background: var(--th-surface-raised);
+  color: var(--th-text);
+  font: inherit;
+  cursor: pointer;
+  vertical-align: baseline;
+}
+.th-chat-file-link span { overflow-wrap: anywhere; min-width: 0; }
+.th-chat-file-link svg { flex-shrink: 0; }
+.th-chat-file-link:hover { background: var(--th-hover); }
+.th-chat-file-link:focus-visible { outline: 2px solid var(--th-ring); outline-offset: var(--th-space-0-5); }
+.th-chat-file-chips, .th-chat-file-attachments { display: flex; flex-wrap: wrap; gap: var(--th-space-2); width: 100%; }
+.th-chat-file-attachments:empty { display: none; }
+.th-chat-file-chip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--th-space-2);
+  padding: var(--th-space-1) var(--th-space-2);
+  max-width: 100%;
+  border: 1px solid var(--th-border-visible);
+  border-radius: 8px;
+  background: var(--th-surface-raised);
+  color: var(--th-text-dim);
+}
+.th-chat-file-name { overflow-wrap: anywhere; min-width: 0; }
+.th-chat-file-chip progress { width: 70px; }
+.th-chat-file-limit { flex-basis: 100%; color: var(--th-muted); font-size: var(--th-type-label-size); }
+.th-chat-upload-error { color: var(--th-error); overflow-wrap: anywhere; }

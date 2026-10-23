@@ -336,7 +336,7 @@
   "chat.header.splitRight": "Split right",
   "chat.header.splitDown": "Split down",
   "chat.header.closePane": "Close pane",
-  "chat.attach": "Attach",
+  "chat.attach": "Attach files",
   "chat.attachUnsupported": "This model does not support images",
   "chat.dropImage": "Drop image here",
   "chat.removeAttach": "Remove attachment",
@@ -478,5 +478,15 @@
   "viewer.size": "Size",
   "viewer.modified": "Modified",
   "viewer.rows": "Showing up to {n} rows · 100 columns",
-  "viewer.zip": "Download ZIP"
+  "viewer.zip": "Download ZIP",
+  "chat.dropFiles": "Drop files here",
+  "chat.uploadLimit": "Up to 100 MiB per request (including form data)",
+  "chat.uploadUnavailable": "Connect to a chat to attach files",
+  "chat.uploadProgress": "Upload progress for {name}",
+  "chat.retryFile": "Retry uploading {name}",
+  "chat.removeFile": "Remove attachment {name}",
+  "chat.openFile": "Open {name}",
+  "chat.fileOpen": "Open",
+  "chat.fileMissing": "File not found",
+  "chat.uploadNetworkError": "Network error — please retry"
 }

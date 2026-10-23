@@ -1,3 +1,6 @@
+import { useFileAttachments } from "./useFileAttachments";
+import { appendFileAttachments } from "./chatFiles";
+import { IconFile, IconX } from "../../components/icons";
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CommandEntry } from "../../lib/chatWs";
 import { useT } from "../../i18n";
@@ -68,7 +71,15 @@ export function ChatComposer({ session, commands, running, blockingQuestion = fa
   const paletteListboxId = `${paletteId}-command-listbox`, paletteOptionIdPrefix = `${paletteId}-command-option`;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isTouch = useMediaQuery(TOUCH_QUERY);
-  const { clear: clearImage, pick: pickImage, fileInputRef, isDragOver, dragHandlers, onPaste } = useImageAttachment(pendingImage, setPendingImage);
+  const { clear: clearImage, pick: pickImage, fileInputRef } = useImageAttachment(pendingImage, setPendingImage);
+  const attachments = useFileAttachments(session);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const pickFiles = (files: readonly File[]): void => {
+    if (disabled) return;
+    const images = files.filter(file => file.type.startsWith("image/"));
+    if (imageSupported && images[0]) pickImage(images[0]);
+    attachments.add(files.filter(file => !file.type.startsWith("image/")));
+  };
   const [caret, setCaret] = useState(0);
   // Reply mode (omo setComposerReply): entered by typing a printable first
   // char (not `/`/`!`) into the empty focused composer while a question is
@@ -218,17 +229,18 @@ export function ChatComposer({ session, commands, running, blockingQuestion = fa
     setDraftCommand(null);
     setCaret(0);
     clearImage();
+    attachments.clear();
     setPaletteHidden(false);
     setActiveIndex(-1);
     fileMention.reset();
   };
 
   const submit = (forceMessage = false): void => {
-    if (disabled || (!input.trim() && !pendingImage)) return;
+    if (disabled || attachments.blocked || (!input.trim() && !pendingImage && !attachments.paths.length)) return;
     // Reply mode (omo submitAsyncQuestionComment): Enter and the send button
     // answer the shown question with the text as its comment. Text starting
     // with `/` or `!` and an attached image never route to the answer.
-    if (!forceMessage && replyTarget && replyActive && pendingImage === null && !/^[/!]/.test(input.trimStart())) {
+    if (!forceMessage && replyTarget && replyActive && attachments.items.length === 0 && pendingImage === null && !/^[/!]/.test(input.trimStart())) {
       if (replyTarget.onAnswer(input.trim())) {
         resetInput();
         replyTargetKeyRef.current = null;
@@ -241,13 +253,13 @@ export function ChatComposer({ session, commands, running, blockingQuestion = fa
     }
     // Only the exact invocation is local. Arguments and embedded mentions keep
     // their existing provider semantics; never send the local action as a prompt.
-    if (input.trim() === "/new") {
+    if (input.trim() === "/new" && !attachments.items.length) {
       onNewChat?.();
       if (onNewChat) resetInput();
       return;
     }
     const draft: ChatDraft = {
-      text: input,
+      text: appendFileAttachments(input, attachments.paths),
       image: pendingImage,
       ...(draftCommand ? { command: draftCommand } : {}),
     };
@@ -259,12 +271,13 @@ export function ChatComposer({ session, commands, running, blockingQuestion = fa
 
   const steer = (): void => {
     const text = input.trim();
-    if (!text || disabled) return;
+    if ((!text && !attachments.paths.length) || disabled || attachments.blocked) return;
     if (text === "/new") {
       submit();
       return;
     }
-    if (!onSteer(input, draftCommand)) return;
+    if (!onSteer(appendFileAttachments(input, attachments.paths), draftCommand)) return;
+    attachments.clear();
     setInput("");
     setDraftCommand(null);
     setPaletteHidden(false);
@@ -275,9 +288,9 @@ export function ChatComposer({ session, commands, running, blockingQuestion = fa
     <form
       className={`th-chat-input${isDragOver ? " th-chat-input--dragover" : ""}`}
       aria-disabled={disabled || undefined}
-      onDragOver={dragHandlers.onDragOver}
-      onDragLeave={dragHandlers.onDragLeave}
-      onDrop={dragHandlers.onDrop}
+      onDragOver={event => { event.preventDefault(); if (!disabled) setIsDragOver(true); }}
+      onDragLeave={event => { if (!(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) setIsDragOver(false); }}
+      onDrop={event => { event.preventDefault(); setIsDragOver(false); pickFiles(Array.from(event.dataTransfer.files)); }}
       onSubmit={(event) => {
         event.preventDefault();
         submit();
@@ -293,7 +306,17 @@ export function ChatComposer({ session, commands, running, blockingQuestion = fa
           removeLabel={t("chat.removeAttach")}
           onClear={clearImage}
         />
-        {isDragOver && <div className="th-chat-drop-hint" role="status">{t("chat.dropImage")}</div>}
+        <div className="th-chat-file-attachments">
+          {attachments.items.map(item => <div key={item.id} className="th-chat-file-chip" aria-busy={!item.path && !item.error}>
+            <IconFile size={16} /><span className="th-chat-file-name" title={item.path ?? item.file.name}>{item.file.name}</span>
+            <small>{(item.file.size / 1024).toFixed(1)} KiB</small>
+            {!item.path && !item.error && <progress aria-label={t("chat.uploadProgress", { name: item.file.name })} max={100} value={item.progress} />}
+            {item.error && <><span className="th-chat-upload-error" role="alert">{item.error}</span><button type="button" className="th-btn th-btn--ghost" aria-label={t("chat.retryFile", { name: item.file.name })} onClick={() => attachments.retry(item.id)}>{t("common.retry")}</button></>}
+            <button type="button" className="th-btn-icon" aria-label={t("chat.removeFile", { name: item.file.name })} onClick={() => attachments.remove(item.id)}><IconX size={14} /></button>
+          </div>)}
+        </div>
+        <span className="th-chat-file-limit">{t("chat.uploadLimit")}</span>
+        {isDragOver && <div className="th-chat-drop-hint" role="status">{t("chat.dropFiles")}</div>}
         {replyTarget && (replyMode || replyForced) && (
           <div className="th-chat-reply-label">
             <span className="th-chat-reply-label-text">
@@ -337,9 +360,9 @@ export function ChatComposer({ session, commands, running, blockingQuestion = fa
         <ChatComposerAttachment
           imageSupported={imageSupported}
           disabled={disabled}
-          attachLabel={imageSupported ? t("chat.attach") : t("chat.attachUnsupported")}
+          attachLabel={t("chat.attach")}
           fileInputRef={fileInputRef}
-          onPick={pickImage}
+          onPick={pickFiles}
         />
         <ChatComposerEditor
           textareaRef={textareaRef}
@@ -356,7 +379,8 @@ export function ChatComposer({ session, commands, running, blockingQuestion = fa
           steerVariant={blockingQuestion ? "message" : "steer"}
           sendLabel={t(running && !stopSuppressed ? "chat.stop" : "chat.send")}
           steerLabel={t(blockingQuestion ? "question.reply.sendAsMessage" : "chat.steer")}
-          canSteer={input.trim().length > 0}
+          canSteer={!attachments.blocked && (input.trim().length > 0 || attachments.paths.length > 0)}
+          sendBlocked={attachments.blocked}
           onCaret={setCaret}
           onInput={(value, at) => {
             // omo handleAskUserShortcut: a printable first char (never `/` or
@@ -376,7 +400,10 @@ export function ChatComposer({ session, commands, running, blockingQuestion = fa
             setCaret(at);
             setPaletteHidden(false);
           }}
-          onPaste={imageSupported && !disabled ? onPaste : undefined}
+          onPaste={!disabled ? event => {
+            const files = Array.from(event.clipboardData?.files ?? []).filter(file => imageSupported || !file.type.startsWith("image/"));
+            if (files.length) { event.preventDefault(); pickFiles(files); }
+          } : undefined}
           onSteer={steer}
           onKeyDown={(event) => handleChatComposerKeyDown(event, {
             file: { open: fileOpen, mention: fileMention, onSelect: selectFile },

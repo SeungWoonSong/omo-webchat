@@ -1,3 +1,4 @@
+import { ChatFilesContext, workspaceFilePath } from "./chatFiles";
 import type { ReactNode } from "react";
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { IconFolder, IconFolderOpen, IconMenu, IconMoreHorizontal, IconPower, IconSplitH, IconSplitV, IconX } from "../../components/icons";
@@ -194,6 +195,13 @@ function ChatPaneContent({
     return () => observer.disconnect();
   }, [pane]);
   const [showFiles, setShowFiles] = useState(false);
+  const [requestedFile, setRequestedFile] = useState<{ path: string; id: number }>();
+  const openFile = (candidate: string): void => {
+    const relative = workspaceFilePath(candidate, chatSession.cwd, false);
+    if (!relative) { notify(t("chat.fileMissing"), "error"); return; }
+    setRequestedFile(previous => ({ path: `${chatSession.cwd.replace(/\/+$/, "")}/${relative}`, id: (previous?.id ?? 0) + 1 }));
+    setShowFiles(true);
+  };
   const [filePanelWidth, setFilePanelWidth] = useState(320);
   const [filePanelWidthCustomized, setFilePanelWidthCustomized] = useState(false);
   const [showDisconnect, setShowDisconnect] = useState(false);
@@ -673,6 +681,7 @@ function ChatPaneContent({
             onDismiss={chat.dismissSendError}
           />
         )}
+        <ChatFilesContext.Provider value={{ root: chatSession.cwd, open: openFile }}>
         <ChatTranscript
           items={transcriptItems}
           historyLoaded={chat.historyLoaded}
@@ -688,6 +697,7 @@ function ChatPaneContent({
           onRetryHistory={chat.retryHistory}
           mediaSource={{ wsId: chatSession.wsId, chatId: chatSession.id }}
         />
+        </ChatFilesContext.Provider>
         <GoalBar goal={chat.goal} />
         <ActivityShelf activities={chat.activities} dagSource={{ wsId: chatSession.wsId, chatId: chatSession.id, connected: chat.connected }} />
         {/* Fixed queue slot: run-time pending feedback renders here, outside
@@ -861,6 +871,7 @@ function ChatPaneContent({
       </div>
       {showFiles && (
         <FileBrowser
+          requestedFile={requestedFile}
           path={chatSession.cwd}
           wsId={chatSession.wsId}
           tmId={chatSession.id}

@@ -11,6 +11,7 @@ interface ChatComposerEditorProps {
   readonly isCompacting: boolean;
   readonly disabled: boolean;
   readonly running: boolean;
+  readonly sendBlocked?: boolean;
   /** A blocking question is waiting for its answer: the send slot keeps the
    *  normal send button (never Stop) so the run cannot be aborted mid-answer. */
   readonly stopSuppressed?: boolean;
@@ -42,6 +43,7 @@ export function ChatComposerEditor({
   isCompacting,
   disabled,
   running,
+  sendBlocked = false,
   stopSuppressed = false,
   steerVisible = false,
   steerVariant = "steer",
@@ -97,7 +99,7 @@ export function ChatComposerEditor({
       <button
         type={stopMode ? "button" : "submit"}
         className={`th-btn th-chat-send-btn${stopMode ? " th-btn--danger" : ""}`}
-        disabled={disabled || (!stopMode && isCompacting)}
+        disabled={disabled || (!stopMode && (isCompacting || sendBlocked))}
         onClick={stopMode ? onStop : undefined}
       >
         {stopMode ? <IconX size={18} /> : <IconArrowUp size={18} />}

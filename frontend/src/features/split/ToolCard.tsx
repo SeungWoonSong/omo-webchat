@@ -1,4 +1,5 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { ChatFilesContext, ChatFileLink, workspaceFilePath } from "./chatFiles";
+import { useContext, useLayoutEffect, useRef, useState } from "react";
 import { useT } from "../../i18n";
 import { IconCheck, IconChevron } from "../../components/icons";
 import type { JsonValue } from "../../lib/chatWs";
@@ -178,7 +179,10 @@ export function ToolCard(props: ToolCardProps) {
     };
   }, [open, text]);
 
+  const files = useContext(ChatFilesContext);
   const record = argsRecord(props.args);
+  const target = record?.["path"] ?? record?.["filePath"] ?? record?.["file_path"];
+  const filePath = files && ["write", "edit", "create", "write_file", "edit_file", "create_file"].includes(toolName) && typeof target === "string" ? workspaceFilePath(target, files.root, false) : null;
   const command = record ? nonEmptyString(record["command"]) : undefined;
   const askUser = askUserToolSummary(toolName, props.args, props.details);
   // Question tools replace the raw-args invocation with the omo-style line:
@@ -250,6 +254,7 @@ export function ToolCard(props: ToolCardProps) {
           </span>
         )}
       </button>
+      {filePath && <ChatFileLink path={filePath}>{t("chat.fileOpen")}</ChatFileLink>}
       {open && hasBody && (
         <div className="th-tool-body">
           {command !== undefined && (

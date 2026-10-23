@@ -3,11 +3,13 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/DevNewbie1826/omo-webchat/internal/cursorstore"
 )
@@ -108,9 +110,47 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes)
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		var limit *http.MaxBytesError
+		if errors.As(err, &limit) {
+			writeError(w, http.StatusRequestEntityTooLarge, "upload exceeds 100 MiB per request")
+			return
+		}
 		writeError(w, http.StatusBadRequest, "invalid multipart form")
 		return
 	}
+	defer r.MultipartForm.RemoveAll()
+	// os.Root constrains creation and symlink traversal to this workspace, even
+	// when directories are swapped concurrently with an upload.
+	root, err := os.OpenRoot(ws.Path)
+	if err != nil {
+		s.writeFsError(w, err)
+		return
+	}
+	defer root.Close()
+	dir := r.FormValue("dir")
+	if dir == "" {
+		dir = "."
+	}
+	if filepath.IsAbs(dir) || !filepath.IsLocal(dir) || strings.ContainsAny(dir, "\\\r\n") {
+		writeError(w, http.StatusBadRequest, "invalid upload directory")
+		return
+	}
+	for _, part := range strings.Split(filepath.ToSlash(dir), "/") {
+		if part == ".." {
+			writeError(w, http.StatusBadRequest, "invalid upload directory")
+			return
+		}
+	}
+	if err := root.MkdirAll(dir, 0o755); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid upload directory")
+		return
+	}
+	dest, err := root.OpenRoot(dir)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid upload directory")
+		return
+	}
+	defer dest.Close()
 	files := r.MultipartForm.File["files"]
 	if len(files) == 0 {
 		writeError(w, http.StatusBadRequest, `no "files" field in multipart form`)
@@ -118,31 +158,47 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	uploaded := make([]string, 0, len(files))
 	for _, fh := range files {
-		if err := saveUpload(fh, ws.Path); err != nil {
+		name, err := saveUpload(fh, dest)
+		if err != nil {
 			s.logger.Error("saving upload", "file", fh.Filename, "err", err)
 			writeError(w, http.StatusInternalServerError, "failed to save "+fh.Filename)
 			return
 		}
-		uploaded = append(uploaded, filepath.Base(fh.Filename))
+		uploaded = append(uploaded, filepath.ToSlash(filepath.Join(dir, name)))
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"uploaded": uploaded})
 }
 
-func saveUpload(fh *multipart.FileHeader, destDir string) error {
+func saveUpload(fh *multipart.FileHeader, dest *os.Root) (string, error) {
 	src, err := fh.Open()
 	if err != nil {
-		return err
+		return "", err
 	}
-	defer func() { _ = src.Close() }()
+	defer src.Close()
 	name := filepath.Base(filepath.Clean(fh.Filename))
-	if name == "" || name == "." || name == ".." {
-		return errors.New("invalid filename")
+	if name == "" || name == "." || name == ".." || strings.ContainsAny(name, "\\\r\n") {
+		return "", errors.New("invalid filename")
 	}
-	dst, err := os.OpenFile(filepath.Join(destDir, name), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
-	if err != nil {
-		return err
+	ext := filepath.Ext(name)
+	stem := strings.TrimSuffix(name, ext)
+	for n := 0; ; n++ {
+		candidate := name
+		if n > 0 {
+			candidate = fmt.Sprintf("%s (%d)%s", stem, n, ext)
+		}
+		dst, err := dest.OpenFile(candidate, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+		if errors.Is(err, os.ErrExist) {
+			continue
+		}
+		if err != nil {
+			return "", err
+		}
+		_, copyErr := io.Copy(dst, src)
+		closeErr := dst.Close()
+		if err := errors.Join(copyErr, closeErr); err != nil {
+			_ = dest.Remove(candidate)
+			return "", err
+		}
+		return candidate, nil
 	}
-	defer func() { _ = dst.Close() }()
-	_, err = io.Copy(dst, src)
-	return err
 }

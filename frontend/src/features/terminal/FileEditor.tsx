@@ -8,14 +8,14 @@ import { useConfirm } from "../../components/ConfirmDialog";
 
 export interface FileEditorCloseRequest {
   readonly id: number;
-  readonly target: "browser";
+  readonly target: "browser" | "file";
 }
 
 export interface FileEditorProps {
   readonly path: string;
   readonly name: string;
   readonly requestClose?: FileEditorCloseRequest;
-  readonly onClose: (target: "editor" | "browser") => void;
+  readonly onClose: (target: "editor" | "browser" | "file") => void;
   readonly notify: (msg: string, kind?: ToastKind) => void;
 }
 
@@ -71,7 +71,7 @@ export function FileEditor({ path, name, requestClose, onClose, notify }: FileEd
     }
   }, [path, content, dirty, notify, t]);
 
-  const handleClose = useCallback(async (target: "editor" | "browser" = "editor"): Promise<void> => {
+  const handleClose = useCallback(async (target: "editor" | "browser" | "file" = "editor"): Promise<void> => {
     if (dirty) {
       const ok = await confirm({
         title: t("editor.unsaved"),

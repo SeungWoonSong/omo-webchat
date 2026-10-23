@@ -45,13 +45,13 @@ describe("ChatComposer image gating by model capability", () => {
 		vi.unstubAllGlobals();
 	});
 
-	it("disables the attach button and labels it when the model lacks image support", () => {
+	it("keeps file picking enabled when the model lacks image support", () => {
 		render(root, false);
 		const attach = container.querySelector<HTMLButtonElement>(".th-chat-attach-btn");
 		if (!attach) throw new Error("missing attach button");
-		expect(attach.disabled).toBe(true);
-		expect(attach.getAttribute("aria-label")).toBe("chat.attachUnsupported");
-		expect(container.querySelector(".th-chat-attach-wrap")?.getAttribute("title")).toBe("chat.attachUnsupported");
+		expect(attach.disabled).toBe(false);
+		expect(attach.getAttribute("aria-label")).toBe("chat.attach");
+		expect(container.querySelector(".th-chat-attach-wrap")?.getAttribute("title")).toBe("chat.attach");
 	});
 
 	it("keeps the attach button enabled for an image-capable model", () => {

@@ -204,3 +204,18 @@ evidence only. Disable the new entry point, if needed, with
 `sudo systemctl disable --now ai-portal-webchat-ujawhales-ts.socket` followed
 by `sudo systemctl stop ai-portal-webchat-ujawhales-ts.service`; the original
 loopback webchat remains available.
+
+## Track B — chat file exchange
+
+- `POST /api/workspaces/{wsId}/chats/{chatId}/upload` accepts optional multipart `dir` (workspace-relative; created if missing). Root/symlink escapes are rejected using `os.Root`. All callers, including the file panel, receive `{ "uploaded": ["uploads/name (1).ext"] }` with final workspace-relative names. Existing names are never overwritten (`O_EXCL`, then ` (1)`, ` (2)`, … before the final extension). The 100 MiB limit includes the multipart envelope.
+- Composer `+`, drop and paste accept multiple files. Non-images upload immediately, individually, to `uploads/`; pending/error chips block submission until completed, retried or removed. Removing a chip does **not** delete the uploaded file. Images retain the existing single-image content slot and model-capability gate; image bytes are not uploaded as ordinary files.
+- Stable, locale-independent prompt suffix (two leading newlines, literal Korean marker, one unescaped workspace-relative path per line):
+  ```text
+
+
+  [첨부 파일]
+  - uploads/보고서 (1).pdf
+  - uploads/data.xlsx
+  ```
+  The exact delimiter is `\n\n[첨부 파일]\n`; entries use `- ` with no trailing newline. The existing session dispatcher trims prompts, so an attachment-only prompt can start directly with `[첨부 파일]`; the transcript accepts both forms. Newline-containing upload names are rejected. Failed-send drafts keep this suffix as text; transcript user bubbles display it as clickable file chips.
+- Assistant markdown relative file links and inline file paths with extensions, and write/edit/create tool targets, open the existing file panel viewer. Rendering does not perform filesystem requests. File existence is checked on click; missing files show a localized toast. Absolute paths are only recognized under the current workspace root; external URLs, code fences, paths escaping the root, and plain words stay unchanged.

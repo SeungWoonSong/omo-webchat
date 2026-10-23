@@ -1,3 +1,4 @@
+import { UserFileMessage } from "./chatFiles";
 import { Markdown } from "../../components/Markdown";
 import { memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode, type TransitionEvent } from "react";
 import { flushSync } from "react-dom";
@@ -617,7 +618,7 @@ export function ChatTranscript({
           <Markdown text={block.text ?? ""} />
         </div>
       ) : (
-        <span key={blockKey(block)}>{block.text}</span>
+        <UserFileMessage key={blockKey(block)} text={block.text ?? ""} />
       );
     });
   };
@@ -1445,7 +1446,7 @@ export function ChatTranscript({
                     {message.customType === "steer" ? (
                       <div className="th-chat-msg th-chat-msg--steer" role="note">
                         <span className="th-chat-steer-mark">{t("chat.steer")}</span>
-                        <span className="th-chat-steer-text">{rowText(message)}</span>
+                        <span className="th-chat-steer-text"><UserFileMessage text={rowText(message)} /></span>
                       </div>
                     ) : message.summaryKind !== undefined ? (
                       // Hydrated summary entries render as summary boxes in

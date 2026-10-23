@@ -12,6 +12,7 @@ import type { ToastKind } from "../../components/SessionTree";
 
 export interface FileBrowserProps {
   readonly path: string;
+  readonly requestedFile?: { readonly path: string; readonly id: number } | undefined;
   readonly wsId: string;
   readonly tmId: string;
   readonly onClose: () => void;
@@ -21,7 +22,7 @@ export interface FileBrowserProps {
   readonly onWidthChange: (px: number) => void;
 }
 
-export function FileBrowser({ path, wsId, tmId, onClose, notify, width, widthCustomized = width !== 320, onWidthChange }: FileBrowserProps) {
+export function FileBrowser({ requestedFile, path, wsId, tmId, onClose, notify, width, widthCustomized = width !== 320, onWidthChange }: FileBrowserProps) {
   const { t, lang } = useT();
   const FILES_PANEL_MIN = 240;
   const FILES_PANEL_MAX = 720;
@@ -46,6 +47,28 @@ export function FileBrowser({ path, wsId, tmId, onClose, notify, width, widthCus
   const [editing, setEditing] = useState<{ readonly name: string; readonly path: string } | null>(
     null,
   );
+
+  const replacementRef = useRef<{ readonly name: string; readonly path: string } | null>(null);
+
+  useEffect(() => {
+    if (!requestedFile) return;
+    let cancelled = false;
+    const filePath = requestedFile.path;
+    const name = filePath.slice(filePath.lastIndexOf("/") + 1);
+    void fsList(filePath.slice(0, filePath.lastIndexOf("/"))).then(list => {
+      if (cancelled) return;
+      if (!list.entries.some(entry => entry.name === name && !entry.isDir)) { notify(t("chat.fileMissing"), "error"); return; }
+      restoreFilePathRef.current = filePath;
+      if (editing) {
+        replacementRef.current = { name, path: filePath };
+        setCloseRequest(request => ({ id: (request?.id ?? 0) + 1, target: "file" }));
+      } else {
+        setCloseRequest(undefined);
+        setEditing({ name, path: filePath });
+      }
+    }).catch(() => { if (!cancelled) notify(t("chat.fileMissing"), "error"); });
+    return () => { cancelled = true; };
+  }, [requestedFile, t]);
 
   useEffect(() => {
     restoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -225,7 +248,9 @@ export function FileBrowser({ path, wsId, tmId, onClose, notify, width, widthCus
           name={editing.name}
           {...(closeRequest ? { requestClose: closeRequest } : {})}
           onClose={(target) => {
-            if (target === "browser") onClose();
+            if (target === "file" && replacementRef.current) {
+              setEditing(replacementRef.current); replacementRef.current = null; setCloseRequest(undefined);
+            } else if (target === "browser") onClose();
             else { setEditing(null); setExpanded(false); }
           }}
           notify={notify}
