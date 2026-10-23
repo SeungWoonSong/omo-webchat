@@ -130,23 +130,83 @@ describe("ChatPane resync control", () => {
     };
   };
 
-  const resyncButton = (): HTMLButtonElement =>
-    requireElement(
+  const resyncButton = (): HTMLButtonElement => {
+    const existing = container.querySelector<HTMLButtonElement>(".th-chat-resync-btn");
+    if (existing) return existing;
+    const more = requireElement(
+      container.querySelector<HTMLButtonElement>(".th-termhead-more-btn"),
+      "header overflow trigger",
+    );
+    act(() => more.click());
+    return requireElement(
       container.querySelector<HTMLButtonElement>(".th-chat-resync-btn"),
       "resync control",
     );
+  };
 
-  it("renders the icon-only variant with a localized accessible name", () => {
+  it("moves secondary header actions into the overflow menu with localized accessible names", () => {
     container.style.width = "320px";
     renderKoreanPane();
 
+    expect(container.querySelector(".th-files-toggle")).not.toBeNull();
+    expect(container.querySelector(".th-termhead-close-btn")).not.toBeNull();
+    expect(container.querySelector(".th-chat-resync-btn")).toBeNull();
+    expect(container.querySelector(".th-disconnect-btn")).toBeNull();
+    expect(container.querySelector(".th-termhead-split-btn")).toBeNull();
+
+    const more = requireElement(
+      container.querySelector<HTMLButtonElement>(".th-termhead-more-btn"),
+      "header overflow trigger",
+    );
+    expect(more.getAttribute("aria-label")).toBe(translate("ko", "chat.header.moreActions"));
+    expect(more.getAttribute("aria-expanded")).toBe("false");
+
     const button = resyncButton();
+    expect(more.getAttribute("aria-expanded")).toBe("true");
     const accessibleName = translate("ko", "chat.header.resync");
-    expect(button.classList.contains("th-btn-icon")).toBe(true);
+    expect(button.classList.contains("th-tree-overflow-item")).toBe(true);
     expect(button.getAttribute("aria-label")).toBe(accessibleName);
     expect(button.title).toBe(accessibleName);
     expect(button.querySelector(".th-chat-resync-icon")?.getAttribute("aria-hidden")).toBe("true");
-    expect(button.querySelector(".th-chat-resync-label")).toBeNull();
+    expect(container.querySelectorAll(".th-termhead-split-btn")).toHaveLength(2);
+    const disconnectBtn = requireElement(
+      container.querySelector<HTMLButtonElement>(".th-disconnect-btn"),
+      "disconnect control",
+    );
+    expect(disconnectBtn.getAttribute("aria-label")).toBe(
+      translate("ko", "chat.header.disconnect"),
+    );
+
+    act(() => {
+      disconnectBtn.focus();
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    });
+    expect(container.querySelector(".th-termhead-overflow")).toBeNull();
+    expect(document.activeElement).toBe(more);
+  });
+
+  it("consumes Escape from a focused overflow action and restores its trigger", () => {
+    renderKoreanPane();
+    resyncButton();
+    const button = requireElement(
+      container.querySelector<HTMLButtonElement>(".th-disconnect-btn"),
+      "enabled overflow action",
+    );
+    const more = requireElement(
+      container.querySelector<HTMLButtonElement>(".th-termhead-more-btn"),
+      "header overflow trigger",
+    );
+    const escape = new KeyboardEvent("keydown", {
+      key: "Escape", bubbles: true, cancelable: true,
+    });
+    act(() => {
+      button.focus();
+      button.dispatchEvent(escape);
+    });
+    expect(escape.defaultPrevented).toBe(true);
+    expect(container.querySelector(".th-termhead-overflow")).toBeNull();
+    expect(more.getAttribute("aria-expanded")).toBe("false");
+    expect(document.activeElement).toBe(more);
   });
 
   it("presents only a manual resync as busy", () => {
@@ -160,10 +220,11 @@ describe("ChatPane resync control", () => {
 
     act(() => button.click());
 
-    expect(button.disabled).toBe(true);
-    expect(button.getAttribute("aria-busy")).toBe("true");
-    expect(button.getAttribute("aria-label")).toBe(translate("ko", "chat.header.resyncBusy"));
-    expect(button.title).toBe(translate("ko", "chat.header.resyncBusy"));
+    const busyButton = resyncButton();
+    expect(busyButton.disabled).toBe(true);
+    expect(busyButton.getAttribute("aria-busy")).toBe("true");
+    expect(busyButton.getAttribute("aria-label")).toBe(translate("ko", "chat.header.resyncBusy"));
+    expect(busyButton.title).toBe(translate("ko", "chat.header.resyncBusy"));
   });
 
   it("stays disabled but not busy during attach and after disconnect", () => {

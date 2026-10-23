@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { IconFolder, IconFolderOpen, IconMenu, IconPower, IconSplitH, IconSplitV, IconX } from "../../components/icons";
+import { IconFolder, IconFolderOpen, IconMenu, IconMoreHorizontal, IconPower, IconSplitH, IconSplitV, IconX } from "../../components/icons";
 import { ErrorBoundary } from "../../components/ErrorBoundary";
 import { ModalDialog } from "../../components/ModalDialog";
 import type { ToastKind } from "../../components/SessionTree";
@@ -128,6 +128,9 @@ function ChatPaneFallback({ error, retry, props }: {
   readonly props: ChatPaneProps;
 }) {
   const { t } = useT();
+  const fallbackName = props.chatSession.name.trim() === "New session"
+    ? t("sidebar.tm.newSession")
+    : props.chatSession.name;
   return (
     <section className={`th-stage th-pane th-chat-pane th-pane-error${props.focused ? " th-pane--focused" : ""}`}
       onPointerDown={event => { if (event.target instanceof Node && event.currentTarget.contains(event.target)) props.onFocus(); }}
@@ -138,7 +141,7 @@ function ChatPaneFallback({ error, retry, props }: {
           aria-label={t("sidebar.expand")} onClick={props.onOpenSidebar}>
           <IconMenu size={16} />
         </button>
-        <span className="th-termhead-name" title={props.chatSession.cwd}>{props.chatSession.name}</span>
+        <span className="th-termhead-name" title={props.chatSession.cwd}>{fallbackName}</span>
       </header>
       <div className="th-pane-error-body" role="alert">
         <p className="th-pane-error-title">{t("chat.paneCrashed")}</p>
@@ -192,6 +195,35 @@ function ChatPaneContent({
   const [showFiles, setShowFiles] = useState(false);
   const [filePanelWidth, setFilePanelWidth] = useState(320);
   const [showDisconnect, setShowDisconnect] = useState(false);
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
+  const headerMenuId = useId();
+  const headerMenuRef = useRef<HTMLDivElement>(null);
+  const headerMenuTriggerRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!headerMenuOpen) return;
+    const onPointerDown = (event: PointerEvent): void => {
+      if (event.target instanceof Node && headerMenuRef.current?.contains(event.target)) return;
+      setHeaderMenuOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== "Escape") return;
+      const active = document.activeElement;
+      const focusInMenu = active !== null && headerMenuRef.current?.contains(active);
+      if (focusInMenu) {
+        event.preventDefault();
+        event.stopPropagation();
+        // Restore focus before the focused action unmounts on dismissal.
+        headerMenuTriggerRef.current?.focus();
+      }
+      setHeaderMenuOpen(false);
+    };
+    window.addEventListener("pointerdown", onPointerDown, true);
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown, true);
+      window.removeEventListener("keydown", onKeyDown, true);
+    };
+  }, [headerMenuOpen]);
   const disconnectTitleId = useId();
   const originalTitleId = useId();
   const [inspectedOriginal, setInspectedOriginal] = useState<{ text: string; trigger: HTMLButtonElement } | null>(null);
@@ -409,6 +441,9 @@ function ChatPaneContent({
     />
   );
   const resyncLabel = chat.resyncBusy ? t("chat.header.resyncBusy") : t("chat.header.resync");
+  const sessionDisplayName = chatSession.name.trim() === "New session"
+    ? t("sidebar.tm.newSession")
+    : chatSession.name;
 
   return (
     <section
@@ -428,9 +463,9 @@ function ChatPaneContent({
         >
           <IconMenu size={16} />
         </button>
-        <span className="th-termhead-name" title={chatSession.cwd}>{chatSession.name}</span>
+        <span className="th-termhead-name" title={chatSession.cwd}>{sessionDisplayName}</span>
         <span className="th-provider-badge" data-provider={chatSession.provider}>{chatSession.provider}</span>
-        <div className="th-termhead-group">
+        <div className="th-termhead-actions">
           <button
             type="button"
             className={`th-btn-icon th-files-toggle${showFiles ? " th-files-toggle--on" : ""}`}
@@ -441,49 +476,117 @@ function ChatPaneContent({
           >
             {showFiles ? <IconFolderOpen size={16} /> : <IconFolder size={16} />}
           </button>
-          <button
-            type="button"
-            className="th-btn th-btn--ghost th-btn-icon th-chat-resync-btn"
-            title={resyncLabel}
-            aria-label={resyncLabel}
-            aria-busy={chat.resyncBusy}
-            disabled={chat.resyncDisabled || chat.running || chat.isCompacting}
-            onClick={() => chat.resync()}
-          >
-            <svg
-              className="th-chat-resync-icon"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              focusable="false"
+          <div className="th-tree-actions--overflow th-termhead-menu" ref={headerMenuRef}>
+            <button
+              ref={headerMenuTriggerRef}
+              type="button"
+              className={`th-btn-icon th-termhead-more-btn${headerMenuOpen ? " th-btn-icon--on" : ""}`}
+              title={t("chat.header.moreActions")}
+              aria-label={t("chat.header.moreActions")}
+              aria-expanded={headerMenuOpen}
+              aria-controls={headerMenuId}
+              onClick={() => setHeaderMenuOpen((open) => !open)}
             >
-              <path d="M20 11a8 8 0 0 0-14.9-4M4 4v5h5M4 13a8 8 0 0 0 14.9 4M20 20v-5h-5" />
-            </svg>
-          </button>
-        </div>
-        <span className="th-termhead-divider" aria-hidden="true" />
-        <div className="th-termhead-actions">
-          <button
-            type="button"
-            className="th-btn-icon th-btn-icon--danger th-disconnect-btn"
-            title={t("chat.header.disconnect")}
-            aria-label={t("chat.header.disconnect")}
-            onClick={() => setShowDisconnect(true)}
-          >
-            <IconPower size={14} />
-          </button>
+              <IconMoreHorizontal size={16} />
+            </button>
+            {headerMenuOpen && (
+              <div
+                id={headerMenuId}
+                role="group"
+                aria-label={t("chat.header.moreActions")}
+                className="th-tree-overflow th-termhead-overflow"
+              >
+                <button
+                  type="button"
+                  className="th-tree-overflow-item th-chat-resync-btn"
+                  title={resyncLabel}
+                  aria-label={resyncLabel}
+                  aria-busy={chat.resyncBusy}
+                  disabled={chat.resyncDisabled || chat.running || chat.isCompacting}
+                  onClick={() => {
+                    if (headerMenuRef.current?.contains(document.activeElement)) {
+                      headerMenuTriggerRef.current?.focus();
+                    }
+                    setHeaderMenuOpen(false);
+                    chat.resync();
+                  }}
+                >
+                  <svg
+                    className="th-chat-resync-icon"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path d="M20 11a8 8 0 0 0-14.9-4M4 4v5h5M4 13a8 8 0 0 0 14.9 4M20 20v-5h-5" />
+                  </svg>
+                  <span>{resyncLabel}</span>
+                </button>
+                {splitEnabled && (
+                  <>
+                    <button
+                      type="button"
+                      className="th-tree-overflow-item th-termhead-split-btn"
+                      title={t("chat.header.splitRight")}
+                      aria-label={t("chat.header.splitRight")}
+                      onClick={() => {
+                        setHeaderMenuOpen(false);
+                        onSplit("h");
+                      }}
+                    >
+                      <IconSplitH size={14} />
+                      <span>{t("chat.header.splitRight")}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="th-tree-overflow-item th-termhead-split-btn"
+                      title={t("chat.header.splitDown")}
+                      aria-label={t("chat.header.splitDown")}
+                      onClick={() => {
+                        setHeaderMenuOpen(false);
+                        onSplit("v");
+                      }}
+                    >
+                      <IconSplitV size={14} />
+                      <span>{t("chat.header.splitDown")}</span>
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  className="th-tree-overflow-item th-tree-overflow-item--danger th-disconnect-btn"
+                  title={t("chat.header.disconnect")}
+                  aria-label={t("chat.header.disconnect")}
+                  onClick={() => {
+                    if (headerMenuRef.current?.contains(document.activeElement)) {
+                      headerMenuTriggerRef.current?.focus();
+                    }
+                    setHeaderMenuOpen(false);
+                    setShowDisconnect(true);
+                  }}
+                >
+                  <IconPower size={14} />
+                  <span>{t("chat.header.disconnect")}</span>
+                </button>
+              </div>
+            )}
+          </div>
           {splitEnabled && (
-            <>
-              <button type="button" className="th-btn-icon th-termhead-split-btn" title={t("chat.header.splitRight")} aria-label={t("chat.header.splitRight")} onClick={() => onSplit("h")}><IconSplitH size={14} /></button>
-              <button type="button" className="th-btn-icon th-termhead-split-btn" title={t("chat.header.splitDown")} aria-label={t("chat.header.splitDown")} onClick={() => onSplit("v")}><IconSplitV size={14} /></button>
-              <button type="button" className="th-btn-icon th-btn-icon--danger th-termhead-close-btn" title={t("chat.header.closePane")} aria-label={t("chat.header.closePane")} onClick={onClose}><IconX size={14} /></button>
-            </>
+            <button
+              type="button"
+              className="th-btn-icon th-btn-icon--danger th-termhead-close-btn"
+              title={t("chat.header.closePane")}
+              aria-label={t("chat.header.closePane")}
+              onClick={onClose}
+            >
+              <IconX size={14} />
+            </button>
           )}
         </div>
       </header>

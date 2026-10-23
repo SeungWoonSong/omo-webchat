@@ -232,6 +232,20 @@ describe("SessionTree running-agent badge", () => {
     expect(workspaceRow.querySelector(".th-tree-running")).toBeNull();
   });
 
+  it("hides the workspace chat-count badge when the session count is 0", () => {
+    tree(
+      container,
+      undefined,
+      false,
+      new Set(["ws-1"]),
+      { ...workspace, chats: [] },
+      [],
+    );
+
+    const workspaceRow = row("Workspace");
+    expect(workspaceRow.querySelector(".th-tree-count")).toBeNull();
+  });
+
   it("renders no chip at all without running counts", () => {
     tree(container);
 

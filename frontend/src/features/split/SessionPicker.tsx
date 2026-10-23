@@ -42,14 +42,19 @@ export function SessionPicker({ workspaces, sessionLists, sessionPages, onEnsure
         <div className="th-picker-pane-list">
           {rows.map(entry => {
             const status = attempts.get(sessionOpenAttemptKey(workspaceID, entry.id));
-            const label = `${workspace.name} / ${entry.name}`;
+            const displayName = entry.name.trim() === ""
+              ? t("sidebar.tm.untitled", { id: entry.id.slice(0, 8) })
+              : entry.name.trim() === "New session"
+                ? t("sidebar.tm.newSession")
+                : entry.name;
+            const label = `${workspace.name} / ${displayName}`;
             return (
               <div key={entry.id}>
                 <button type="button" className="th-picker-pane-item" title={label} aria-label={label}
                   disabled={entry.dangling || status === "opening" || status === "session-active"}
                   aria-busy={status === "opening" || undefined}
                   onClick={() => void open(workspace, entry)}>
-                  <span className="th-picker-pane-name">{entry.name}</span>
+                  <span className="th-picker-pane-name">{displayName}</span>
                   {status === "opening" && <span>{t("sidebar.tm.opening")}</span>}
                   {entry.dangling && <span>{t("sidebar.tm.missingOriginal")}</span>}
                 </button>

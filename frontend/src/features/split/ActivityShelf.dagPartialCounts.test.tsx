@@ -532,7 +532,9 @@ describe("ActivityShelf exact DAG-derived Subagents counts", () => {
   it("keeps task-only complete counts exact and authoritative empty content empty", () => {
     renderShelf(harness, activityState({ tasks: [makeTask()] }));
     expect(count()).toBe("1/1");
-    renderShelf(harness, activityState({ todo: [] }));
+    renderShelf(harness, activityState({
+      todo: [{ name: "Phase", tasks: [{ content: "item", status: "pending" }] }],
+    }));
     expect(count()).toBeNull();
     click(agentsTab());
     expect(agentsPanel().querySelector(".th-activity-empty")?.textContent).toBe("activity.emptyAgents");

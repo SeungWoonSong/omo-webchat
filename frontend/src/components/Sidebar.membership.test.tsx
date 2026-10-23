@@ -138,7 +138,7 @@ describe("Sidebar running membership crawl", () => {
     await act(async () => deleteButton?.click());
 
     expect(container.querySelector(".th-tree-running--workspace")).toBeNull();
-    expect(container.querySelector(".th-tree-count")?.textContent).toBe("0");
+    expect(container.querySelector(".th-tree-count")).toBeNull();
   });
 
   it("renders partial membership successes and retries failed workspaces", async () => {

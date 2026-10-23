@@ -377,9 +377,11 @@ export function SessionTree({
                 </span>
               )}
               <span className="th-tree-count-slot">
-                <span className={`th-tree-count${workspaceRunning > 0 || workspaceMainRunning ? " th-tree-count--running" : ""}`}>
-                  {mergedSessionIds.size}
-                </span>
+                {mergedSessionIds.size > 0 ? (
+                  <span className={`th-tree-count${workspaceRunning > 0 || workspaceMainRunning ? " th-tree-count--running" : ""}`}>
+                    {mergedSessionIds.size}
+                  </span>
+                ) : null}
                 {workspaceRunning > 0 || workspaceMainRunning ? (
                   <RunningChip
                     className="th-tree-running th-tree-running--workspace"
@@ -414,7 +416,11 @@ export function SessionTree({
                 const runningInfo = runningCounts?.get(item.id);
                 const running = runningInfo ?? 0;
                 const mainRunning = activeSessions?.has(item.id) === true;
-                const displayName = item.name.trim() !== "" ? item.name : t("sidebar.tm.untitled", { id: item.id.slice(0, 8) });
+                const displayName = item.name.trim() === ""
+                  ? t("sidebar.tm.untitled", { id: item.id.slice(0, 8) })
+                  : item.name.trim() === "New session"
+                    ? t("sidebar.tm.newSession")
+                    : item.name;
                 const dangling = item.dangling === true;
                 const danglingHint = dangling
                   ? t("sidebar.tm.missingOriginalHint", { name: displayName })

@@ -1,4 +1,7 @@
+import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { I18nContext } from "../../i18n";
+import { ActivityShelf } from "./ActivityShelf";
 import { emptyActivityState } from "./activityState";
 import {
   activityState,
@@ -11,7 +14,7 @@ import {
   unmountActivityShelf,
   type ActivityShelfHarness,
 } from "./ActivityShelf.support";
-import { requireElement } from "./chatPaneTestHarness";
+import { i18n, requireElement } from "./chatPaneTestHarness";
 
 /**
  * The shelf is the transcript's record of agent and DAG work: finished
@@ -98,5 +101,35 @@ describe("ActivityShelf finished work", () => {
     renderShelf(harness, emptyActivityState());
     expect(harness.container.querySelector(".th-activity-shelf")).toBeNull();
     expect(harness.container.textContent).toBe("");
+  });
+
+  it("hides the tab strip when todo is explicitly empty and no other panel has content", () => {
+    act(() => {
+      harness.root.render(
+        <I18nContext.Provider value={i18n}>
+          <ActivityShelf
+            activities={activityState({ todo: [] })}
+            dagSource={{ wsId: "ws", chatId: "chat", connected: true }}
+          />
+        </I18nContext.Provider>,
+      );
+    });
+    expect(harness.container.querySelector(".th-activity-shelf")).toBeNull();
+    expect(harness.container.querySelector("[role='tablist']")).toBeNull();
+  });
+
+  it("stays hidden on an empty session even when dagSource is provided", () => {
+    act(() => {
+      harness.root.render(
+        <I18nContext.Provider value={i18n}>
+          <ActivityShelf
+            activities={emptyActivityState()}
+            dagSource={{ wsId: "ws", chatId: "chat", connected: true }}
+          />
+        </I18nContext.Provider>,
+      );
+    });
+    expect(harness.container.querySelector(".th-activity-shelf")).toBeNull();
+    expect(harness.container.querySelector("[role='tablist']")).toBeNull();
   });
 });

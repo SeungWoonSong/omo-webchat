@@ -52,6 +52,7 @@ describe("ChatPane receiver attempt preservation", () => {
         });
         const siblingBefore = siblingContainer.innerHTML;
         const siblingSent = [...sibling.sent];
+        act(() => requireElement(container.querySelector<HTMLButtonElement>(".th-termhead-more-btn"), "more").click());
         act(() => requireElement(container.querySelector<HTMLButtonElement>(".th-chat-resync-btn"), "resync").click());
         for (const value of stream) {
           const frame = parseChatServerFrame(value);

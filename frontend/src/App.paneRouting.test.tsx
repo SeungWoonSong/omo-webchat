@@ -298,6 +298,7 @@ describe("App pane routing with real layout, sidebar, picker and chat", () => {
   it("activates occupied and empty panes by keyboard while portal focus preserves the active destination", async () => {
     await mount(); await focusPane(1);
     expect(pane(1).matches(".th-pane--focused")).toBe(true);
+    await click(button(pane(0), '.th-termhead-more-btn'));
     await click(button(pane(0), '.th-disconnect-btn'));
     expect(pane(1).matches(".th-pane--focused")).toBe(true);
     await click(button(document, '.th-confirm-actions .th-btn--ghost'));

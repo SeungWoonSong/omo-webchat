@@ -929,9 +929,10 @@ export function useWorkspaces({ notify, t, layout, confirm, discoveryEnabled = f
   };
 
   const handleDeleteTerminal = async (ws: Workspace, tm: Terminal): Promise<void> => {
+    const displayName = tm.name.trim() === "New session" ? t("sidebar.tm.newSession") : tm.name;
     const ok = await confirm({
       title: t("sidebar.tm.delete"),
-      message: t("sidebar.confirmDeleteTm", { name: tm.name }),
+      message: t("sidebar.confirmDeleteTm", { name: displayName }),
       confirmLabel: t("sidebar.tm.delete"),
       danger: true,
     });
