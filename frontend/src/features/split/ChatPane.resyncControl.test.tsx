@@ -45,6 +45,7 @@ describe("ChatPane resync control", () => {
     });
     ControlledResizeObserver.instances = [];
     container.remove();
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
@@ -207,6 +208,56 @@ describe("ChatPane resync control", () => {
     expect(container.querySelector(".th-termhead-overflow")).toBeNull();
     expect(more.getAttribute("aria-expanded")).toBe("false");
     expect(document.activeElement).toBe(more);
+  });
+
+  it("bounds the unsupported-popover fallback in a 160px pane and keeps all actions focusable", () => {
+    expect(typeof HTMLElement.prototype.showPopover).not.toBe("function");
+    vi.stubGlobal("innerWidth", 320);
+    vi.stubGlobal("innerHeight", 160);
+    let triggerTop = 8;
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+      const trigger = this.classList.contains("th-termhead-more-btn");
+      const anchor = this.classList.contains("th-termhead-menu");
+      return new DOMRect(trigger || anchor ? 280 : 0, trigger || anchor ? triggerTop : 0,
+        trigger || anchor ? 32 : 320, trigger || anchor ? 32 : 160);
+    });
+    vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(192);
+    vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(192);
+    vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(200);
+    const { deliver } = renderKoreanPane();
+    act(() => deliver({ type: "entries", sessionId: chatSession.id, entries: [], final: true }));
+    resyncButton();
+    const menu = requireElement(container.querySelector<HTMLDivElement>(".th-termhead-overflow"), "menu");
+    expect(menu.hasAttribute("popover")).toBe(false);
+    expect(menu.style.position).toBe("absolute");
+    expect(menu.style.top).toBe("32px");
+    expect(menu.style.left).toBe("-168px");
+    expect(menu.style.maxHeight).toBe("120px");
+    expect(menu.style.maxWidth).toBe("320px");
+    const actions = [...menu.querySelectorAll("button")];
+    expect(actions).toHaveLength(4);
+    expect(actions.map(button => button.getAttribute("aria-label"))).toEqual([
+      "chat.header.resync", "chat.header.splitRight", "chat.header.splitDown", "chat.header.disconnect",
+    ].map(key => translate("ko", key)));
+    for (const button of actions) {
+      expect(button.disabled).toBe(false);
+      expect(button.tabIndex).toBe(0);
+      button.focus();
+      expect(document.activeElement).toBe(button);
+    }
+    // A moved pane/trigger flips upward on captured scroll without remounting.
+    triggerTop = 120;
+    act(() => container.dispatchEvent(new Event("scroll")));
+    expect(menu.style.top).toBe("-120px");
+    expect(menu.style.maxHeight).toBe("120px");
+    triggerTop = 8;
+    vi.stubGlobal("innerHeight", 90);
+    act(() => window.dispatchEvent(new Event("resize")));
+    expect(menu.style.maxHeight).toBe("50px");
+    expect(menu.querySelectorAll("button")).toHaveLength(4);
+    act(() => actions[3]!.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+    expect(container.querySelector(".th-termhead-overflow")).toBeNull();
+    expect(document.activeElement).toBe(container.querySelector(".th-termhead-more-btn"));
   });
 
   it("presents only a manual resync as busy", () => {

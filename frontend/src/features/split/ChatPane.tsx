@@ -199,6 +199,66 @@ function ChatPaneContent({
   const headerMenuId = useId();
   const headerMenuRef = useRef<HTMLDivElement>(null);
   const headerMenuTriggerRef = useRef<HTMLButtonElement>(null);
+  const headerMenuPopupRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (!headerMenuOpen) return;
+    const menu = headerMenuPopupRef.current;
+    const trigger = headerMenuTriggerRef.current;
+    const anchor = headerMenuRef.current;
+    if (!menu || !trigger || !anchor) return;
+    const topLayer = typeof menu.showPopover === "function";
+    if (topLayer) {
+      // The top layer escapes the pane's overflow/container containing block
+      // without moving the actions out of their existing DOM/Tab order.
+      menu.setAttribute("popover", "manual");
+      menu.showPopover();
+    }
+    const position = (): void => {
+      const viewport = window.visualViewport;
+      const gap = parseFloat(getComputedStyle(menu).getPropertyValue("--th-space-1")) || 0;
+      const bounds = !topLayer && pane ? pane.getBoundingClientRect() : null;
+      const left = Math.max(viewport?.offsetLeft ?? 0, bounds?.left ?? 0) + gap;
+      const top = Math.max(viewport?.offsetTop ?? 0, bounds?.top ?? 0) + gap;
+      const right = Math.min((viewport?.offsetLeft ?? 0) + (viewport?.width ?? window.innerWidth), bounds?.right ?? Infinity) - gap;
+      const bottom = Math.min((viewport?.offsetTop ?? 0) + (viewport?.height ?? window.innerHeight), bounds?.bottom ?? Infinity) - gap;
+      const scrollTop = menu.scrollTop;
+      menu.style.maxWidth = `${Math.max(0, right - left)}px`;
+      menu.style.maxHeight = "none";
+      const rect = trigger.getBoundingClientRect();
+      const height = Math.max(menu.scrollHeight, menu.offsetHeight);
+      const below = Math.max(0, bottom - rect.bottom - gap);
+      const above = Math.max(0, rect.top - gap - top);
+      const upward = height > below && above > below;
+      const available = upward ? above : below;
+      const y = upward ? rect.top - gap - Math.min(height, available) : rect.bottom + gap;
+      const x = Math.max(left, Math.min(rect.right - menu.offsetWidth, right - menu.offsetWidth));
+      const origin = anchor.getBoundingClientRect();
+      menu.style.position = topLayer ? "fixed" : "absolute";
+      menu.style.left = `${x - (topLayer ? 0 : origin.left)}px`;
+      menu.style.top = `${Math.max(top, Math.min(y, bottom - Math.min(height, available))) - (topLayer ? 0 : origin.top)}px`;
+      menu.style.maxHeight = `${available}px`;
+      menu.scrollTop = scrollTop;
+    };
+    const onScroll = (event: Event): void => {
+      if (event.target instanceof Node && menu.contains(event.target)) return;
+      position();
+    };
+    position();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(position);
+    if (pane) observer?.observe(pane);
+    observer?.observe(trigger);
+    window.addEventListener("resize", position);
+    window.addEventListener("scroll", onScroll, true);
+    window.visualViewport?.addEventListener("resize", position);
+    window.visualViewport?.addEventListener("scroll", position);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", position);
+      window.removeEventListener("scroll", onScroll, true);
+      window.visualViewport?.removeEventListener("resize", position);
+      window.visualViewport?.removeEventListener("scroll", position);
+    };
+  }, [headerMenuOpen, pane]);
   useEffect(() => {
     if (!headerMenuOpen) return;
     const onPointerDown = (event: PointerEvent): void => {
@@ -491,6 +551,7 @@ function ChatPaneContent({
             </button>
             {headerMenuOpen && (
               <div
+                ref={headerMenuPopupRef}
                 id={headerMenuId}
                 role="group"
                 aria-label={t("chat.header.moreActions")}

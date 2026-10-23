@@ -71,10 +71,17 @@
 }
 
 .th-chat-pane .th-termhead-overflow {
+  inset: auto;
+  margin: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  color: inherit;
   background: var(--th-surface-overlay);
 }
 
 .th-chat-pane .th-termhead-overflow .th-tree-overflow-item {
+  flex-shrink: 0;
   width: 100%;
   height: auto;
 }
