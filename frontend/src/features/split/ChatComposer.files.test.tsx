@@ -61,9 +61,19 @@ it("keeps the upload limit out of idle content but describes the attach button",
 });
 it("shows the limit only inside the drop hint during dragover and clears it on leave", () => {
   const form = container.querySelector("form")!;
-  act(() => form.dispatchEvent(new Event("dragover", { bubbles: true, cancelable: true })));
+  const dragover = new Event("dragover", { bubbles: true, cancelable: true });
+  Object.defineProperty(dragover, "dataTransfer", { value: { types: ["Files"], files: [] } });
+  act(() => form.dispatchEvent(dragover));
   expect(container.querySelector(".th-chat-drop-hint")?.textContent).toContain("chat.uploadLimit");
   act(() => form.dispatchEvent(new Event("dragleave", { bubbles: true })));
+  expect(container.textContent).not.toContain("chat.uploadLimit");
+});
+it("does not show the drop hint when dragging text without files", () => {
+  const form = container.querySelector("form")!;
+  const dragover = new Event("dragover", { bubbles: true, cancelable: true });
+  Object.defineProperty(dragover, "dataTransfer", { value: { types: ["text/plain"], files: [] } });
+  act(() => form.dispatchEvent(dragover));
+  expect(container.querySelector(".th-chat-drop-hint")).toBeNull();
   expect(container.textContent).not.toContain("chat.uploadLimit");
 });
 it("shows the localized limit on a 413 upload error and clears it when removed", async () => {

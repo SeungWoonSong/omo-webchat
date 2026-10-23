@@ -297,7 +297,7 @@ export function ChatComposer({ session, suggestion, commands, running, blockingQ
     <form
       className={`th-chat-input${isDragOver ? " th-chat-input--dragover" : ""}`}
       aria-disabled={disabled || undefined}
-      onDragOver={event => { event.preventDefault(); if (!disabled) setIsDragOver(true); }}
+      onDragOver={event => { event.preventDefault(); if (!disabled && Array.from(event.dataTransfer?.types ?? []).includes("Files")) setIsDragOver(true); }}
       onDragLeave={event => { if (!(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) setIsDragOver(false); }}
       onDrop={event => { event.preventDefault(); setIsDragOver(false); pickFiles(Array.from(event.dataTransfer.files)); }}
       onSubmit={(event) => {
