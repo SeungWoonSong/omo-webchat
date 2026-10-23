@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useT } from "../i18n";
 import { ModalDialog } from "./ModalDialog";
 import { useConfirm } from "./ConfirmDialog";
+import { AccountAPIKeyForm } from "./AccountAPIKeyForm";
 import { AccountLoginFlow } from "./AccountLoginFlow";
 import { useAccountLogin } from "./useAccountLogin";
 import { changeAccount, listAccountProviders } from "../lib/accounts";
@@ -16,6 +17,8 @@ export function AccountsPanel({ onClose }: { readonly onClose: () => void }) {
   const [changing, setChanging] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState("");
+  const [keyForm, setKeyForm] = useState(false);
+  const [keyResult, setKeyResult] = useState("");
   const mounted = useRef(true);
   const refresh = async (signal?: AbortSignal) => {
     setLoading(true);
@@ -71,6 +74,7 @@ export function AccountsPanel({ onClose }: { readonly onClose: () => void }) {
           {loading && <p role="status">{t("accounts.loading")}</p>}
           {error && <p role="alert">{t(error)}</p>}
           {result && <p role="status">{t(result)}</p>}
+          {keyResult && <p role="status">{keyResult}</p>}
         </div>
         {!loading && providers.length === 0 && <p>{t("accounts.emptyProviders")}</p>}
         <ul className="th-accounts-list" aria-busy={loading}>
@@ -80,13 +84,19 @@ export function AccountsPanel({ onClose }: { readonly onClose: () => void }) {
             return <li key={p.id} data-provider={p.id}>
               <div className="th-accounts-provider">
                 <div className="th-accounts-provider-title"><h3>{t(`accounts.provider.${p.id}`)}</h3><span className="th-accounts-badge" data-status={status}>{t(`accounts.${status}`)}</span></div>
-                <button className="th-btn th-btn--primary" disabled={busy || loading} onClick={() => { setResult(""); void login.start(p.id); }}>{t("accounts.add")}</button>
+                <button className="th-btn th-btn--ghost" disabled={busy || loading || p.id === "anthropic" && keyForm} onClick={() => { setResult(""); setKeyResult(""); if (p.id === "anthropic") setKeyForm(true); else void login.start(p.id); }}>{t(p.id === "anthropic" ? "accounts.apiKeyAdd" : "accounts.add")}</button>
               </div>
+              {p.id === "anthropic" && p.keyHint && <p className="th-accounts-hint">{t("accounts.apiKeyDefault", { hint: `…${p.keyHint}` })}</p>}
+              {p.id === "anthropic" && keyForm && <AccountAPIKeyForm provider={p} onBusy={setChanging} onCancel={() => setKeyForm(false)} onSaved={(saved) => {
+                setKeyForm(false);
+                setKeyResult(`${t("accounts.apiKeySaved")}${saved.keyHint ? ` (…${saved.keyHint})` : ""}${saved.replaced === "oauth" ? ` · ${t("accounts.apiKeyReplaced")}` : ""}`);
+                void refresh();
+              }} />}
               {p.accounts.length === 0 ? <p className="th-accounts-hint">{t("accounts.empty")}</p> :
                 <ul className="th-accounts-saved">
                   {p.accounts.map((a) => <li key={a.name}>
                     <div className="th-accounts-identity">
-                      <strong>{a.displayName ? `${a.displayName} (${a.name})` : a.name}</strong>
+                      <strong>{a.displayName ? `${a.displayName} (${a.name})` : a.name}{p.id === "anthropic" && p.accounts.length === 1 && p.keyHint && <> · <span className="th-accounts-key-hint">…{p.keyHint}</span></>}</strong>
                       <span className="th-accounts-hint">{t(a.blocked ? "accounts.blocked" : "accounts.available")}{a.pinned ? ` · ${t("accounts.pinned")}` : ""}</span>
                     </div>
                     <div className="th-accounts-actions">

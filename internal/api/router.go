@@ -77,12 +77,13 @@ func New(ctx context.Context, cfg *config.Config, cursors *cursorstore.Store, se
 
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/login", s.handleLogin)
+	mux.Handle("POST /api/login", requireSameOrigin(http.HandlerFunc(s.handleLogin)))
 
 	protected := http.NewServeMux()
 	protected.HandleFunc("POST /api/logout", s.handleLogout)
 	protected.HandleFunc("GET /api/auth/check", s.handleAuthCheck)
 	protected.HandleFunc("GET /api/accounts", s.handleAccounts)
+	protected.HandleFunc("POST /api/accounts/{provider}/api-key", s.handleAccountAPIKey)
 	protected.HandleFunc("POST /api/accounts/{provider}/login", s.handleAccountStart)
 	protected.HandleFunc("POST /api/accounts/manage/{provider}/{action}", s.handleAccountChange)
 	protected.HandleFunc("GET /api/accounts/logins/{loginId}/events", s.handleAccountEvents)
@@ -125,7 +126,7 @@ func (s *Server) Handler() http.Handler {
 	protected.HandleFunc("POST /api/system/update", s.handleSystemUpdate)
 	protected.HandleFunc("POST /api/system/engine/restart", s.handleSystemEngineRestart)
 
-	mux.Handle("/api/", s.sessions.Middleware(protected))
+	mux.Handle("/api/", s.sessions.Middleware(requireSameOrigin(protected)))
 	mux.Handle("/", s.staticHandler())
 	return mux
 }

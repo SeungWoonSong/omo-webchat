@@ -37,6 +37,7 @@
 .th-accounts-flow form .th-btn, .th-accounts-flow > .th-btn { align-self: flex-start; }
 .th-accounts-link .th-input { flex-basis: 100%; }
 .th-accounts-secret { overflow-wrap: anywhere; }
+.th-accounts-key-hint { white-space: nowrap; }
 .th-accounts-success { color: var(--th-success); }
 @media (max-width: 480px) {
   .th-accounts-title-row { padding: var(--th-space-4) var(--th-space-12) var(--th-space-3) var(--th-space-4); }

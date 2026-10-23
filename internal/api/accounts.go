@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"mime"
 	"net/http"
 	"time"
 
@@ -18,7 +20,7 @@ func (s *Server) accountError(w http.ResponseWriter, err error) {
 		status = http.StatusConflict
 	case errors.Is(err, accounts.ErrNotFound):
 		status = http.StatusNotFound
-	case errors.Is(err, accounts.ErrInvalid):
+	case errors.Is(err, accounts.ErrInvalid), errors.Is(err, accounts.ErrAPIKey):
 		status = http.StatusBadRequest
 	}
 	writeError(w, status, err.Error())
@@ -159,4 +161,47 @@ func (s *Server) handleAccountCancel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) handleAccountAPIKey(w http.ResponseWriter, r *http.Request) {
+	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil || mediaType != "application/json" {
+		writeError(w, http.StatusUnsupportedMediaType, "application/json required")
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	if r.PathValue("provider") != "anthropic" {
+		s.accountError(w, accounts.ErrInvalid)
+		return
+	}
+	var req struct {
+		Key string `json:"key"`
+	}
+	defer func() { req.Key = "" }()
+	r.Body = http.MaxBytesReader(w, r.Body, 4096)
+	decoder := json.NewDecoder(r.Body)
+	if decoder.Decode(&req) != nil {
+		s.accountError(w, accounts.ErrAPIKey)
+		return
+	}
+	var extra any
+	if decoder.Decode(&extra) != io.EOF {
+		s.accountError(w, accounts.ErrAPIKey)
+		return
+	}
+	if _, err := accounts.ValidateAPIKey(req.Key); err != nil {
+		s.accountError(w, err)
+		return
+	}
+	if s.accounts == nil {
+		s.accountError(w, accounts.ErrUnavailable)
+		return
+	}
+	result, err := s.accounts.LoginAPIKey(r.Context(), "anthropic", req.Key)
+	req.Key = ""
+	if err != nil {
+		s.accountError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
 }

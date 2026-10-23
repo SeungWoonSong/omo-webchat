@@ -16,6 +16,7 @@ vi.mock("../lib/accounts", async (original) => ({
   answerAccountLogin: vi.fn(),
   accountLoginEvents: vi.fn(),
   changeAccount: vi.fn(),
+  saveAccountAPIKey: vi.fn(),
 }));
 
 let root: Root;
@@ -44,6 +45,7 @@ beforeEach(() => {
   vi.mocked(accounts.cancelAccountLogin).mockResolvedValue(undefined);
   vi.mocked(accounts.answerAccountLogin).mockResolvedValue(undefined);
   vi.mocked(accounts.changeAccount).mockResolvedValue(undefined);
+  vi.mocked(accounts.saveAccountAPIKey).mockResolvedValue({ ok: true, keyHint: "abcd" });
   vi.mocked(accounts.accountLoginEvents).mockImplementation((_id, r, f) => { receive=r; fail=f; return stop; });
   host = document.createElement("div"); document.body.append(host); root=createRoot(host);
 });
@@ -204,4 +206,123 @@ it("reports engine login failure without exposing private engine text", async ()
   expect(document.querySelector("[role=alert]")).not.toBeNull();
   expect(document.querySelector(".th-accounts-badge")?.getAttribute("data-status")).toBe("error");
   expect(document.body.textContent).not.toContain("private login details");
+});
+
+const fakeKey = "sk-ant-test-0000000000000000abcd";
+function apiProvider(authType = "api_key", count = 0) {
+  vi.mocked(accounts.listAccountProviders).mockResolvedValue({ providers: [
+    { id: "anthropic-subscription", name: "Claude", status: { configured: false }, accounts: [] },
+    { id: "anthropic", name: "Anthropic", authType, keyHint: "abcd", status: { configured: count > 0 }, accounts: Array.from({ length: count }, (_, i) => ({ name: `key-${i}`, displayName: `Work ${i}`, blocked: false })) },
+    { id: "chatgpt-subscription", name: "ChatGPT", status: { configured: false }, accounts: [] },
+    { id: "cursor", name: "Cursor", status: { configured: false }, accounts: [] },
+  ] });
+}
+async function fillAPIKey(value: string) {
+  const input = document.querySelector<HTMLInputElement>("#accounts-api-key")!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(input, value);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+}
+async function openAPIKey(authType = "api_key") {
+  apiProvider(authType); await render(); await act(async () => button("Add API key").click());
+}
+it("validates API keys and masks them with an explicit show/hide toggle", async () => {
+  await openAPIKey();
+  const input = document.querySelector<HTMLInputElement>("#accounts-api-key")!;
+  expect(input.type).toBe("password"); expect(input.autocomplete).toBe("off");
+  await fillAPIKey("wrong"); await act(async () => button("Save").click());
+  expect(accounts.saveAccountAPIKey).not.toHaveBeenCalled(); expect(document.querySelector('[role=alert]')).not.toBeNull();
+  await act(async () => button("Show key").click()); expect(input.type).toBe("text");
+  await act(async () => button("Hide key").click()); expect(input.type).toBe("password");
+});
+it("confirms replacement only for an OAuth credential and clears state after save", async () => {
+  await openAPIKey("oauth"); await fillAPIKey(fakeKey);
+  await act(async () => button("Save").click());
+  expect(document.querySelector(".th-confirm-message")?.textContent).toContain("will be replaced");
+  expect(accounts.saveAccountAPIKey).not.toHaveBeenCalled();
+  vi.mocked(accounts.saveAccountAPIKey).mockResolvedValue({ ok: true, replaced: "oauth", keyHint: "abcd" });
+  await act(async () => document.querySelector<HTMLButtonElement>(".th-confirm .th-btn--primary")!.click());
+  expect(accounts.saveAccountAPIKey).toHaveBeenCalledWith(fakeKey);
+  expect(document.querySelector("#accounts-api-key")).toBeNull();
+  expect(accounts.listAccountProviders).toHaveBeenCalledTimes(2);
+  expect(document.body.textContent).toContain("API key saved (…abcd)");
+  expect(document.body.textContent).toContain("Replaced the previous");
+  expect(document.body.innerHTML).not.toContain(fakeKey);
+  await act(async () => button("Add API key").click());
+  expect(document.querySelector<HTMLInputElement>("#accounts-api-key")?.value).toBe("");
+});
+it("saves API-key credentials without OAuth confirmation and supports absent hint", async () => {
+  await openAPIKey(); await fillAPIKey(fakeKey);
+  vi.mocked(accounts.saveAccountAPIKey).mockResolvedValue({ ok: true });
+  await act(async () => button("Save").click());
+  expect(document.querySelector(".th-confirm-message")).toBeNull();
+  expect(accounts.saveAccountAPIKey).toHaveBeenCalledWith(fakeKey);
+  expect(document.querySelector("#accounts-api-key")).toBeNull();
+  expect(document.querySelector(".th-accounts-feedback")?.textContent).toBe("API key saved");
+});
+it("shows server errors but never renders an echoed API key", async () => {
+  const { ApiError } = await import("../lib/api");
+  await openAPIKey(); await fillAPIKey(fakeKey);
+  vi.mocked(accounts.saveAccountAPIKey).mockRejectedValue(new ApiError(502, `cannot save ${fakeKey}`));
+  await act(async () => button("Save").click());
+  expect(document.querySelector("[role=alert]")?.textContent).toContain("cannot save");
+  expect(document.body.textContent).not.toContain(fakeKey);
+  expect(document.querySelector<HTMLInputElement>("#accounts-api-key")?.value).toBe("");
+  expect(document.querySelector<HTMLInputElement>("#accounts-api-key")?.type).toBe("password");
+});
+it("keeps subscription rows unchanged and scopes a hint only to a sole API account", async () => {
+  apiProvider("api_key", 1); await render();
+  expect(document.querySelectorAll('.th-accounts-provider > button').length).toBe(4);
+  expect(Array.from(document.querySelectorAll('.th-accounts-provider > button')).map(b => b.textContent)).toEqual(["Add account", "Add API key", "Add account", "Add account"]);
+  expect(document.querySelector('.th-accounts-identity')?.textContent).toContain("Work 0 (key-0) · …abcd");
+  apiProvider("api_key", 2);
+  await act(async () => document.querySelector<HTMLButtonElement>('.th-accounts-refresh')!.click());
+  for (const identity of document.querySelectorAll('.th-accounts-identity')) expect(identity.textContent).not.toContain("…abcd");
+  expect(document.querySelector('[data-provider=anthropic]')?.textContent).toContain("Default key …abcd");
+});
+it("uses identical client key validation boundaries", () => {
+  for (const value of ["", " ", "sk-other-test", "sk-ant-a b", "sk-ant-a\nb", "sk-ant-a\u0000b", "sk-ant-a\u2003b", "sk-ant-" + "a".repeat(506), "sk-ant-" + "한".repeat(169)]) expect(accounts.validAnthropicAPIKey(value)).toBe(false);
+  expect(accounts.validAnthropicAPIKey(`  ${fakeKey}\n`)).toBe(true);
+  expect(accounts.validAnthropicAPIKey("sk-ant-" + "a".repeat(505))).toBe(true);
+
+});
+
+it("submits through the real account request without persisting the sentinel key", async () => {
+  const real = await vi.importActual<typeof accounts>("../lib/accounts");
+  vi.mocked(accounts.saveAccountAPIKey).mockImplementationOnce(real.saveAccountAPIKey);
+  const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true, keyHint: "abcd" }), { status: 200, headers: { "Content-Type": "application/json" } }));
+  vi.stubGlobal("fetch", fetch);
+  const sentinel = "sk-ant-test-NOT-PERSISTED-SENTINEL-000000abcd";
+  await openAPIKey(); await fillAPIKey(sentinel);
+  await act(async () => button("Save").click());
+  expect(accounts.saveAccountAPIKey).toHaveBeenCalledWith(sentinel);
+  expect(fetch).toHaveBeenCalledTimes(1);
+  const [url, init] = fetch.mock.calls[0]!;
+  expect(url).toBe("/api/accounts/anthropic/api-key");
+  expect(init.method).toBe("POST");
+  expect(JSON.parse(init.body)).toEqual({ key: sentinel });
+  expect(document.querySelector("#accounts-api-key")).toBeNull();
+  expect(document.body.textContent).toContain("API key saved (…abcd)");
+  for (const storage of [localStorage, sessionStorage]) {
+    for (let i = 0; i < storage.length; i++) {
+      const key = storage.key(i)!;
+      expect(key).not.toContain(sentinel);
+      expect(storage.getItem(key)).not.toContain(sentinel);
+    }
+  }
+  expect(document.cookie).not.toContain(sentinel);
+  expect(location.href).not.toContain(sentinel);
+  expect(document.body.innerHTML).not.toContain(sentinel);
+});
+it("keeps all provider add buttons secondary and only the open form Save primary", async () => {
+  apiProvider("api_key", 1); await render();
+  for (const add of document.querySelectorAll(".th-accounts-provider > button")) {
+    expect(add.classList.contains("th-btn--ghost")).toBe(true);
+    expect(add.classList.contains("th-btn--primary")).toBe(false);
+  }
+  expect(document.querySelectorAll(".th-btn--primary")).toHaveLength(0);
+  await act(async () => button("Add API key").click());
+  expect(document.querySelectorAll(".th-btn--primary")).toHaveLength(1);
+  expect(button("Save").classList.contains("th-btn--primary")).toBe(true);
 });
