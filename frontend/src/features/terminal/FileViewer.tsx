@@ -64,7 +64,7 @@ export function FileViewer({ path, name, requestClose, onClose, notify, expanded
     </div>
     <div className="th-viewer-body">
       {error ? <p role="alert">{error}</p> : kind === "markdown" ? content === null ? <p>{t("wizard.loading")}</p> :
-        <div className="th-viewer-markdown"><Markdown text={content} imageUrl={src => markdownImageUrl(path, src)} /></div> :
+        <div className="th-viewer-markdown th-chat-markdown"><Markdown text={content} imageUrl={src => markdownImageUrl(path, src)} /></div> :
       kind === "html" || kind === "pdf" ? <iframe title={name} src={url} {...(kind === "html" ? { sandbox: "allow-scripts allow-popups allow-forms" } : {})} /> :
       kind === "image" ? <button type="button" className={`th-viewer-image${zoom ? " th-viewer-image--zoom" : ""}`} aria-label={t(zoom ? "viewer.fit" : "viewer.zoom")} onClick={() => setZoom(!zoom)}><img src={url} alt={name} /></button> :
       kind === "audio" ? <audio controls src={url} aria-label={name} /> :
