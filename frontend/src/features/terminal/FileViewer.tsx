@@ -23,12 +23,25 @@ export function FileViewer({ path, name, requestClose, onClose, notify, expanded
   const kind = previewKind(name);
   const backRef = useRef<HTMLButtonElement>(null);
   const handledCloseRef = useRef<number>();
+  const [pdfCheck, setPdfCheck] = useState<{ path: string; verified: boolean }>();
+  const verifiedPdf = pdfCheck?.path === path ? pdfCheck.verified : null;
   const [editing, setEditing] = useState(false);
   const [content, setContent] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [meta, setMeta] = useState<FsEntry>();
   const [raw, setRaw] = useState(false);
   const [zoom, setZoom] = useState(false);
+  useEffect(() => {
+    if (kind !== "pdf") return;
+    const controller = new AbortController();
+    setPdfCheck(undefined);
+    void fetch(rawUrl(path), { method: "HEAD", signal: controller.signal }).then(response => {
+      if (!controller.signal.aborted) setPdfCheck({ path, verified: response.ok && response.headers.get("Content-Type")?.split(";")[0]?.trim().toLowerCase() === "application/pdf" });
+    }).catch(() => {
+      if (!controller.signal.aborted) setPdfCheck({ path, verified: false });
+    });
+    return () => controller.abort();
+  }, [path, kind]);
   useEffect(() => {
     let cancelled = false;
     setContent(null); setError("");
@@ -50,7 +63,8 @@ export function FileViewer({ path, name, requestClose, onClose, notify, expanded
   const download = (): void => {
     void apiDownload(downloadUrl(path), name).catch((err: unknown) => notify(err instanceof Error ? err.message : t("files.error"), "error"));
   };
-  if (editing) return <>{closeButton && <div className="th-files-head"><span className="th-files-title">{t("files.title")}</span><span className="th-files-path">{workspaceRoot ? workspaceRelativePath(workspaceRoot, path.slice(0, path.lastIndexOf("/"))) : "./"}</span>{closeButton}</div>}<FileEditor path={path} name={name} {...(requestClose ? { requestClose } : {})} onClose={target => {
+  // A mounted editor consumes the new request; never pass it to a later editor.
+  if (editing) return <>{closeButton && <div className="th-files-head"><span className="th-files-title">{t("files.title")}</span><span className="th-files-path">{workspaceRoot ? workspaceRelativePath(workspaceRoot, path.slice(0, path.lastIndexOf("/"))) : "./"}</span>{closeButton}</div>}<FileEditor path={path} name={name} {...(requestClose && handledCloseRef.current !== requestClose.id ? { requestClose } : {})} onClose={target => {
     if (target === "browser") onClose(target); else setEditing(false);
   }} notify={notify} /></>;
   const url = rawUrl(path);
@@ -75,7 +89,8 @@ export function FileViewer({ path, name, requestClose, onClose, notify, expanded
     <div className={`th-viewer-body${kind === "html" || kind === "pdf" ? " th-viewer-body--frame" : ""}${kind === "image" ? " th-viewer-body--image" : ""}`}>
       {error ? <p role="alert">{error}</p> : kind === "markdown" ? content === null ? <p>{t("wizard.loading")}</p> :
         <div className="th-viewer-markdown th-chat-markdown"><Markdown text={content} imageUrl={src => markdownImageUrl(path, src)} /></div> :
-      kind === "html" || kind === "pdf" ? <iframe title={name} src={kind === "pdf" ? `${url}#view=FitH&navpanes=0` : url} {...(kind === "html" ? { sandbox: "allow-scripts allow-popups allow-forms" } : {})} /> :
+      kind === "pdf" && verifiedPdf === null ? <p>{t("wizard.loading")}</p> :
+      kind === "html" || kind === "pdf" ? <iframe title={name} src={kind === "pdf" && verifiedPdf ? `${url}#view=FitH&navpanes=0` : url} {...(kind === "html" || !verifiedPdf ? { sandbox: "allow-scripts allow-popups allow-forms" } : {})} /> :
       kind === "image" ? <button type="button" className={`th-viewer-image${zoom ? " th-viewer-image--zoom" : ""}`} aria-label={t(zoom ? "viewer.fit" : "viewer.zoom")} aria-pressed={zoom} onClick={() => setZoom(!zoom)}><img src={url} alt={name} /></button> :
       kind === "audio" ? <audio controls src={url} aria-label={name} /> :
       kind === "video" ? <video controls src={url} aria-label={name} /> :

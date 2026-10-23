@@ -184,7 +184,7 @@ export function FileBrowser({ path, wsId, tmId, onClose, notify, width, widthCus
       onDrop={onDrop}
       onKeyDownCapture={(event) => {
         if (event.key === "Tab") {
-          const controls = Array.from(browserRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], textarea, [tabindex="0"]') ?? []).filter(el => el.getClientRects().length > 0);
+          const controls = Array.from(browserRef.current?.querySelectorAll<HTMLElement>('button, a[href], input, select, textarea, iframe, audio[controls], video[controls], [tabindex]') ?? []).filter(el => !el.matches(':disabled, [disabled], [tabindex="-1"]') && !el.closest('[hidden], [inert], [aria-hidden="true"]') && getComputedStyle(el).visibility !== "hidden" && el.getClientRects().length > 0);
           const first = controls[0]; const last = controls[controls.length - 1];
           if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
           else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }

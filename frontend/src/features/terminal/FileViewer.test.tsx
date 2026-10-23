@@ -47,6 +47,7 @@ it("sandboxes HTML without same-origin and shows unsupported metadata/download",
   const render = (name: string) => act(async () => root.render(<I18nContext.Provider value={i18n}><FileViewer key={name} name={name} path={`/work/${name}`} onClose={vi.fn()} notify={vi.fn()} expanded={false} onExpand={vi.fn()} /></I18nContext.Provider>));
   try {
     await render("page.html"); expect(host.querySelector("iframe")?.getAttribute("sandbox")).toBe("allow-scripts allow-popups allow-forms");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { headers: { "Content-Type": "application/pdf" } })));
     await render("sample.pdf");
     expect(host.querySelector("iframe")?.getAttribute("src")).toContain("#view=FitH&navpanes=0");
     expect(host.querySelector("iframe")?.hasAttribute("sandbox")).toBe(false);
@@ -83,5 +84,24 @@ it("renders a single accessible icon toolbar, relative directory and CSV source 
     await render("fake.docx");
     expect(host.querySelector(".th-viewer-unsupported .th-btn--primary")).not.toBeNull();
     expect(host.querySelector('.th-viewer-toolbar [aria-label="Edit"]')).toBeNull();
+  } finally { act(() => root.unmount()); host.remove(); }
+});
+
+
+it.each(["application/pdf", "application/octet-stream"])("verifies PDF with HEAD before choosing iframe sandbox: %s", async contentType => {
+  vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  let resolve!: (response: Response) => void;
+  const fetchMock = vi.fn().mockReturnValue(new Promise<Response>(done => { resolve = done; }));
+  vi.stubGlobal("fetch", fetchMock);
+  const host = document.createElement("div"); document.body.appendChild(host); const root = createRoot(host);
+  try {
+    await act(async () => root.render(<I18nContext.Provider value={i18n}><FileViewer name="file.pdf" path="/work/file.pdf" onClose={vi.fn()} notify={vi.fn()} expanded={false} onExpand={vi.fn()} /></I18nContext.Provider>));
+    expect(host.querySelector("iframe")).toBeNull();
+    expect(host.textContent).toContain(i18n.t("wizard.loading"));
+    expect(fetchMock).toHaveBeenCalledWith("/api/fs/raw?path=%2Fwork%2Ffile.pdf", expect.objectContaining({ method: "HEAD" }));
+    await act(async () => resolve(new Response(null, { headers: { "Content-Type": contentType } })));
+    const frame = host.querySelector("iframe")!;
+    expect(frame).not.toBeNull();
+    expect(frame.getAttribute("sandbox")).toBe(contentType === "application/pdf" ? null : "allow-scripts allow-popups allow-forms");
   } finally { act(() => root.unmount()); host.remove(); }
 });

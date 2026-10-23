@@ -141,7 +141,7 @@ func TestZipManifestEntryLimit(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if _, err := zipManifest(os.DirFS(root)); err != errZipLimit {
+	if _, _, err := zipManifest(t.Context(), os.DirFS(root)); err != errZipLimit {
 		t.Fatalf("got %v", err)
 	}
 }

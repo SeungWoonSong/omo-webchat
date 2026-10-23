@@ -149,4 +149,57 @@ describe("FileBrowser focus", () => {
     await act(async () => Array.from(container.querySelectorAll<HTMLButtonElement>(".th-viewer-toolbar button")).find(button => button.getAttribute("aria-label") === "Back / Close")?.click());
     expect(document.activeElement).toBe(container.querySelector(".th-files-name--link"));
   });
+  it("does not replay a cancelled browser close when re-entering edit", async () => {
+    const close = vi.fn();
+    vi.mocked(fsList).mockResolvedValue({ ...listing, entries: [{ name: "note.txt", isDir: false, size: 8, modTime: "2026-01-01T00:00:00Z" }] });
+    await act(async () => root.render(<I18nContext.Provider value={i18n}><FileBrowser path="/files" wsId="w" tmId="t" onClose={close} notify={vi.fn()} width={320} onWidthChange={vi.fn()} /></I18nContext.Provider>));
+    await act(async () => container.querySelector<HTMLButtonElement>(".th-files-name--link")!.click());
+    const edit = () => container.querySelector<HTMLButtonElement>('[aria-label="Edit"]')!.click();
+    await act(async () => edit());
+    const editor = container.querySelector<HTMLTextAreaElement>("textarea")!;
+    act(() => {
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(editor, "changed");
+      editor.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => container.querySelector<HTMLButtonElement>(".th-files-head button")!.click());
+    await act(async () => document.querySelector<HTMLButtonElement>('[role="dialog"] .th-btn--ghost')!.click());
+    await act(async () => container.querySelector<HTMLButtonElement>(".th-editor-head .th-btn-icon")!.click());
+    await act(async () => document.querySelector<HTMLButtonElement>('[role="dialog"] .th-btn--danger')!.click());
+    await act(async () => edit());
+    expect(close).not.toHaveBeenCalled();
+    expect(container.querySelector("textarea")).not.toBeNull();
+  });
+
+  it.each([["sound.mp3", "audio"], ["movie.mp4", "video"], ["page.html", "iframe"]])("includes %s in the focus trap after close and supports reverse Tab", async (name, tag) => {
+    vi.spyOn(HTMLElement.prototype, "getClientRects").mockReturnValue([{}] as unknown as DOMRectList);
+    vi.mocked(fsList).mockResolvedValue({ ...listing, entries: [{ name, isDir: false, size: 8, modTime: "2026-01-01T00:00:00Z" }] });
+    await act(async () => root.render(<I18nContext.Provider value={i18n}><FileBrowser path="/files" wsId="w" tmId="t" onClose={vi.fn()} notify={vi.fn()} width={320} onWidthChange={vi.fn()} /></I18nContext.Provider>));
+    await act(async () => container.querySelector<HTMLButtonElement>(".th-files-name--link")!.click());
+    const close = container.querySelector<HTMLButtonElement>(".th-viewer-toolbar button:last-child")!;
+    const preview = container.querySelector<HTMLElement>(tag)!;
+    for (const [attribute, value] of [["tabindex", "-1"], ["hidden", ""], ["disabled", ""]] as const) {
+      const excluded = document.createElement("button");
+      excluded.textContent = "excluded";
+      excluded.setAttribute(attribute, value);
+      container.querySelector(".th-viewer-body")!.appendChild(excluded);
+    }
+    // jsdom does not implement native Tab/media focus: emulate the browser's
+    // default move only when the focus trap has not cancelled that key.
+    const nativeFocus = preview.focus.bind(preview);
+    vi.spyOn(preview, "focus").mockImplementation(() => { preview.tabIndex = 0; nativeFocus(); preview.removeAttribute("tabindex"); });
+    const tab = (from: HTMLElement, shift = false) => {
+      from.focus();
+      const event = new KeyboardEvent("keydown", { key: "Tab", shiftKey: shift, bubbles: true, cancelable: true });
+      act(() => { from.dispatchEvent(event); });
+      return event;
+    };
+    expect(tab(close).defaultPrevented).toBe(false);
+    preview.focus(); expect(document.activeElement).toBe(preview);
+    expect(tab(preview, true).defaultPrevented).toBe(false);
+    close.focus(); expect(document.activeElement).toBe(close);
+    expect(tab(preview).defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(container.querySelector('[role="separator"]'));
+    tab(container.querySelector<HTMLElement>('[role="separator"]')!, true);
+    expect(document.activeElement).toBe(preview);
+  });
 });
