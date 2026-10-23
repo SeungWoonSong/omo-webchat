@@ -32,7 +32,7 @@ func TestListBoundsEngineLabelsAndKeyHint(t *testing.T) {
 		t.Fatalf("List: %v, rows=%d", err, len(providers))
 	}
 	p := providers[0]
-	if p.Name != strings.Repeat("한", 80) || p.Accounts[0].Name != strings.Repeat("계", 80) || p.Accounts[0].DisplayName != strings.Repeat("정", 80) || p.KeyHint != "가나다라" {
+	if p.Name != strings.Repeat("한", 80) || p.Accounts[0].Name != strings.Repeat("계", 100) || p.Accounts[0].DisplayName != strings.Repeat("정", 80) || p.KeyHint != "가나다라" {
 		t.Fatalf("unbounded projection: %+v", p)
 	}
 }

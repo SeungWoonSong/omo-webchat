@@ -144,8 +144,8 @@ func (s *Service) List(ctx context.Context) ([]Provider, error) {
 		p.Name = limitAccountLabel(p.Name)
 		p.KeyHint = trailingVisibleHint(p.KeyHint)
 		p.Accounts = accounts.Accounts
+		// Name is the immutable engine ID used by pin/remove; only the display label is bounded.
 		for i := range p.Accounts {
-			p.Accounts[i].Name = limitAccountLabel(p.Accounts[i].Name)
 			p.Accounts[i].DisplayName = limitAccountLabel(p.Accounts[i].DisplayName)
 		}
 		if p.Accounts == nil {
