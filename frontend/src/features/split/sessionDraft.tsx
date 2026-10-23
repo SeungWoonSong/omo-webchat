@@ -6,14 +6,22 @@ import type { ChatSessionRef } from "../workspace/workspace";
 import type { PendingImage, RecoveredChatDraft } from "./chatSessionTypes";
 
 type SessionIdentity = Pick<ChatSessionRef, "wsId" | "id">;
+export interface FileAttachment {
+  readonly id: number;
+  readonly file: File;
+  readonly progress: number;
+  readonly path?: string;
+  readonly error?: string;
+}
 interface ComposerDraft {
+  readonly attachments: readonly FileAttachment[];
   readonly text: string;
   readonly image: PendingImage | null;
   readonly command: CommandEntry | null;
   /** Cleared by every user mutation, even an edit back to identical content. */
   readonly recoveryRequestId: string | null;
 }
-const EMPTY_DRAFT: ComposerDraft = { text: "", image: null, command: null, recoveryRequestId: null };
+const EMPTY_DRAFT: ComposerDraft = { text: "", image: null, command: null, attachments: [], recoveryRequestId: null };
 const draftKey = (session: SessionIdentity): string => JSON.stringify([session.wsId, session.id]);
 type DraftPatch = Partial<ComposerDraft>;
 type DraftUpdate = (current: ComposerDraft) => ComposerDraft;
@@ -68,8 +76,8 @@ export function useSessionDraft(session?: SessionIdentity) {
   }, [mutate]);
   const restoreDraft = useCallback((recovered: RecoveredChatDraft): void => {
     mutate(current => {
-      if (!recovered.explicit && (current.text !== "" || current.image !== null || current.command !== null)) return current;
-      return { text: recovered.text, image: recovered.image, command: recovered.command ?? null,
+      if (!recovered.explicit && (current.text !== "" || current.image !== null || current.command !== null || current.attachments.length > 0)) return current;
+      return { ...current, text: recovered.text, image: recovered.image, command: recovered.command ?? null,
         recoveryRequestId: recovered.explicit ? null : recovered.requestId ?? null };
     });
   }, [mutate]);
@@ -80,7 +88,13 @@ export function useSessionDraft(session?: SessionIdentity) {
   const setInput = useCallback((text: string) => update({ text }), [update]);
   const setPendingImage = useCallback((image: PendingImage | null) => update({ image }), [update]);
   const setDraftCommand = useCallback((command: CommandEntry | null) => update({ command }), [update]);
-  return { input: draft.text, pendingImage: draft.image, draftCommand: draft.command, setInput, setPendingImage, setDraftCommand, restoreDraft, cancelRecovery };
+  const setAttachments = useCallback((update: (items: readonly FileAttachment[]) => readonly FileAttachment[]): void => {
+    mutate(current => {
+      const attachments = update(current.attachments);
+      return attachments === current.attachments ? current : { ...current, attachments, recoveryRequestId: null };
+    });
+  }, [mutate]);
+  return { input: draft.text, pendingImage: draft.image, draftCommand: draft.command, attachments: draft.attachments, setAttachments, setInput, setPendingImage, setDraftCommand, restoreDraft, cancelRecovery };
 }
 
 /** Same authenticated workspace/chat lifetime as unsent composer drafts. */

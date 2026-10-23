@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode"
 
 	"github.com/DevNewbie1826/omo-webchat/internal/cursorstore"
 )
@@ -175,8 +176,14 @@ func saveUpload(fh *multipart.FileHeader, dest *os.Root) (string, error) {
 		return "", err
 	}
 	defer src.Close()
-	name := filepath.Base(filepath.Clean(fh.Filename))
-	if name == "" || name == "." || name == ".." || strings.ContainsAny(name, "\\\r\n") {
+	name := strings.TrimFunc(fh.Filename, func(r rune) bool { return r == '.' || unicode.IsSpace(r) })
+	name = strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) || r == '/' || r == '\\' {
+			return '_'
+		}
+		return r
+	}, name)
+	if name == "" {
 		return "", errors.New("invalid filename")
 	}
 	ext := filepath.Ext(name)

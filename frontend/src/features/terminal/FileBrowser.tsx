@@ -49,26 +49,34 @@ export function FileBrowser({ requestedFile, path, wsId, tmId, onClose, notify, 
   );
 
   const replacementRef = useRef<{ readonly name: string; readonly path: string } | null>(null);
+  const editingRef = useRef(editing);
+  editingRef.current = editing;
+  const openRequestRef = useRef(0);
+
+  const requestOpen = useCallback((name: string, filePath: string): void => {
+    restoreFilePathRef.current = filePath;
+    if (editingRef.current) {
+      replacementRef.current = { name, path: filePath };
+      setCloseRequest(request => ({ id: (request?.id ?? 0) + 1, target: "file" }));
+    } else {
+      setCloseRequest(undefined);
+      setEditing({ name, path: filePath });
+    }
+  }, []);
 
   useEffect(() => {
     if (!requestedFile) return;
     let cancelled = false;
+    const requestId = ++openRequestRef.current;
     const filePath = requestedFile.path;
     const name = filePath.slice(filePath.lastIndexOf("/") + 1);
     void fsList(filePath.slice(0, filePath.lastIndexOf("/"))).then(list => {
-      if (cancelled) return;
+      if (cancelled || requestId !== openRequestRef.current) return;
       if (!list.entries.some(entry => entry.name === name && !entry.isDir)) { notify(t("chat.fileMissing"), "error"); return; }
-      restoreFilePathRef.current = filePath;
-      if (editing) {
-        replacementRef.current = { name, path: filePath };
-        setCloseRequest(request => ({ id: (request?.id ?? 0) + 1, target: "file" }));
-      } else {
-        setCloseRequest(undefined);
-        setEditing({ name, path: filePath });
-      }
-    }).catch(() => { if (!cancelled) notify(t("chat.fileMissing"), "error"); });
+      requestOpen(name, filePath);
+    }).catch(() => { if (!cancelled && requestId === openRequestRef.current) notify(t("chat.fileMissing"), "error"); });
     return () => { cancelled = true; };
-  }, [requestedFile, t]);
+  }, [requestedFile, t, requestOpen]);
 
   useEffect(() => {
     restoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -129,11 +137,9 @@ export function FileBrowser({ requestedFile, path, wsId, tmId, onClose, notify, 
   };
 
   const openFile = useCallback((name: string, dir: string): void => {
-    const filePath = joinPath(dir, name);
-    restoreFilePathRef.current = filePath;
-    setCloseRequest(undefined);
-    setEditing({ name, path: filePath });
-  }, []);
+    ++openRequestRef.current;
+    requestOpen(name, joinPath(dir, name));
+  }, [requestOpen]);
 
   useEffect(() => {
     if (editing || !restoreFilePathRef.current) return;

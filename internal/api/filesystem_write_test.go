@@ -284,3 +284,45 @@ func TestUploadDirectoryAndDedupe(t *testing.T) {
 		}
 	}
 }
+
+func TestUploadSanitizedNamesRoundTrip(t *testing.T) {
+	s, st, ws := newChatCreateTestServer(t)
+	chat, err := st.NewChat(ws.ID, "upload", ws.Path, "", "omo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct{ input, stored string }{
+		{"quarter#1.pdf", "quarter#1.pdf"},
+		{"query?.csv", "query?.csv"},
+		{"tail.pdf ", "tail.pdf"},
+		{"보고서 (1).pdf", "보고서 (1).pdf"},
+		{"-proof.pdf", "-proof.pdf"},
+		{" . padded.pdf. \t", "padded.pdf"},
+		{"control\tname.pdf", "control_name.pdf"},
+		{"back\\slash.pdf", "back_slash.pdf"},
+	} {
+		t.Run(test.input, func(t *testing.T) {
+			req := multipartUploadRequest(t, "/upload", test.input, "exact file content")
+			req.SetPathValue("wsId", ws.ID)
+			req.SetPathValue("chatId", chat.ID)
+			rec := httptest.NewRecorder()
+			s.handleUpload(rec, req)
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status %d: %s", rec.Code, rec.Body.String())
+			}
+			var response struct {
+				Uploaded []string `json:"uploaded"`
+			}
+			if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
+				t.Fatal(err)
+			}
+			if len(response.Uploaded) != 1 || response.Uploaded[0] != test.stored {
+				t.Fatalf("paths = %v, want %q", response.Uploaded, test.stored)
+			}
+			data, err := os.ReadFile(filepath.Join(ws.Path, response.Uploaded[0]))
+			if err != nil || string(data) != "exact file content" {
+				t.Fatalf("file = %q, %v", data, err)
+			}
+		})
+	}
+}

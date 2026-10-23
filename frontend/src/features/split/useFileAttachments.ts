@@ -1,26 +1,29 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useT } from "../../i18n";
 import { uploadFiles } from "../terminal/terminal";
 import type { ChatSessionRef } from "../workspace/workspace";
 
-interface Attachment {
-  readonly id: number;
-  readonly file: File;
-  readonly progress: number;
-  readonly path?: string;
-  readonly error?: string;
-}
+import { useSessionDraft } from "./sessionDraft";
+import type { FileAttachment } from "./sessionDraft";
+
+let nextAttachmentId = 0;
 export function useFileAttachments(session: Pick<ChatSessionRef, "wsId" | "id"> | undefined) {
   const { t } = useT();
-  const [items, setItems] = useState<readonly Attachment[]>([]);
-  const nextId = useRef(0);
+  const { attachments: items, setAttachments: setItems } = useSessionDraft(session);
   const generation = useRef(0);
   const controllers = useRef(new Map<number, AbortController>());
   useEffect(() => {
-    setItems([]);
-    return () => { generation.current++; controllers.current.forEach(c => c.abort()); controllers.current.clear(); };
-  }, [session?.wsId, session?.id]);
-  const update = (id: number, change: Partial<Attachment>, epoch: number): void => {
+    return () => {
+      generation.current++;
+      controllers.current.forEach(c => c.abort());
+      controllers.current.clear();
+      // Keep completed uploads and make interrupted uploads explicitly retryable.
+      setItems(items => items.some(item => !item.path && !item.error)
+        ? items.map(item => item.path || item.error ? item : { ...item, error: t("chat.uploadNetworkError") })
+        : items);
+    };
+  }, [setItems, t]);
+  const update = (id: number, change: Partial<FileAttachment>, epoch: number): void => {
     if (epoch === generation.current) setItems(items => items.map(item => item.id === id ? { ...item, ...change } : item));
   };
   const start = (id: number, file: File): void => {
@@ -42,7 +45,7 @@ export function useFileAttachments(session: Pick<ChatSessionRef, "wsId" | "id"> 
     blocked: items.some(item => !item.path),
     paths: items.flatMap(item => item.path ? [item.path] : []),
     add: (files: readonly File[]): void => {
-      const added = files.map(file => ({ id: nextId.current++, file, progress: 0 }));
+      const added = files.map(file => ({ id: nextAttachmentId++, file, progress: 0 }));
       setItems(items => [...items, ...added]);
       added.forEach(item => start(item.id, item.file));
     },
@@ -52,6 +55,6 @@ export function useFileAttachments(session: Pick<ChatSessionRef, "wsId" | "id"> 
       setItems(items => items.map(item => item.id === id ? { id, file: item.file, progress: 0 } : item));
       start(id, item.file);
     },
-    clear: (): void => setItems([]),
+    clear: (): void => { generation.current++; controllers.current.forEach(c => c.abort()); controllers.current.clear(); setItems(() => []); },
   };
 }

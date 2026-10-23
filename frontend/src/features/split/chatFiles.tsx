@@ -6,9 +6,12 @@ import "../../styles/chat-files.css";
 
 export const ChatFilesContext = createContext<{ readonly root: string; readonly open: (path: string) => void } | null>(null);
 
+const DOCUMENT_MEDIA_EXTENSIONS = new Set("pdf docx doc xlsx xls csv tsv pptx ppt hwp hwpx md txt html htm json png jpg jpeg gif webp svg mp3 mp4 wav zip".split(" "));
+const FILE_EXTENSIONS = new Set([...DOCUMENT_MEDIA_EXTENSIONS, ..."py ts tsx js go sh yaml yml".split(" ")]);
+
 /** Pure lexical detection; existence/permissions are checked only on click. */
 export function workspaceFilePath(value: string, root: string, requireExtension = true): string | null {
-  if (!value || value !== value.trim() || /[\r\n\0\\?#]/.test(value) || /^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(value)) return null;
+  if (!value || value !== value.trim() || /[\x00-\x1f\x7f\\]/.test(value) || /^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(value)) return null;
   const base = root.replace(/\/+$/, "");
   let path = value;
   if (path.startsWith("/")) {
@@ -21,7 +24,12 @@ export function workspaceFilePath(value: string, root: string, requireExtension 
     else if (part && part !== ".") parts.push(part);
   }
   const name = parts.at(-1);
-  if (!name || (requireExtension && !/^[^\s].*\.[a-z\d]{1,16}$/i.test(name))) return null;
+  if (!name) return null;
+  if (requireExtension) {
+    const extension = name.slice(name.lastIndexOf(".") + 1).toLowerCase();
+    const allowed = value.includes("/") ? FILE_EXTENSIONS : DOCUMENT_MEDIA_EXTENSIONS;
+    if (!name.includes(".") || !allowed.has(extension)) return null;
+  }
   return parts.join("/");
 }
 
