@@ -477,6 +477,7 @@
   "viewer.tooLarge": "File too large",
   "viewer.failed": "Conversion failed",
   "viewer.timeout": "Conversion timed out",
+  "viewer.busy": "Please try again shortly",
   "viewer.unsupported": "Preview is not yet supported for this format.",
   "viewer.size": "Size",
   "viewer.modified": "Modified",

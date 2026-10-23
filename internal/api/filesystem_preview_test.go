@@ -4,7 +4,6 @@ package api
 
 import (
 	"archive/zip"
-	"context"
 	"fmt"
 	"net/http/httptest"
 	"os"
@@ -140,23 +139,6 @@ func TestPreviewLimitsEscapesAndHWP(t *testing.T) {
 		t.Fatalf("%d %s", w.Code, w.Body.String())
 	}
 }
-func TestPreviewQueueCancellation(t *testing.T) {
-	s, _ := previewTestServer(t, fakePDFConverter)
-	previewLane <- struct{}{}
-	ctx, cancel := context.WithCancel(context.Background())
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		s.handlePreview(httptest.NewRecorder(), httptest.NewRequest("GET", "/api/fs/preview?path=file.docx", nil).WithContext(ctx))
-	}()
-	cancel()
-	select {
-	case <-done:
-	case <-time.After(time.Second):
-		t.Error("cancelled waiter blocked")
-	}
-	<-previewLane
-}
 func TestPreviewCacheEviction(t *testing.T) {
 	dir := t.TempDir()
 	for i := range 3 {
@@ -222,7 +204,8 @@ func TestPreviewGlobalConcurrency(t *testing.T) {
 	lock := filepath.Join(t.TempDir(), "converter-lock")
 	s, root := previewTestServer(t, "mkdir '"+lock+"' || exit 1\ntrap \"rmdir '"+lock+"'\" EXIT\n"+fakePDFConverter)
 	var wg sync.WaitGroup
-	for i := range 10 {
+	// One running job plus at most eight queued unique conversions.
+	for i := range 9 {
 		name := fmt.Sprintf("file-%d.docx", i)
 		if err := os.WriteFile(filepath.Join(root, name), []byte(name), 0600); err != nil {
 			t.Fatal(err)

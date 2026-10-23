@@ -25,7 +25,7 @@ export function FileViewer({ path, name, requestClose, onClose, notify, expanded
   const handledCloseRef = useRef<number>();
   const [pdfCheck, setPdfCheck] = useState<{ path: string; verified: boolean }>();
   const verifiedPdf = pdfCheck?.path === path ? pdfCheck.verified : null;
-  const [conversion, setConversion] = useState<{ path: string; reason?: "toolMissing" | "tooLarge" | "failed" | "timeout" }>();
+  const [conversion, setConversion] = useState<{ path: string; reason?: "toolMissing" | "tooLarge" | "failed" | "timeout" | "busy" }>();
   const converted = conversion?.path === path ? conversion : undefined;
   const [editing, setEditing] = useState(false);
   const [content, setContent] = useState<string | null>(null);
@@ -39,7 +39,7 @@ export function FileViewer({ path, name, requestClose, onClose, notify, expanded
     setConversion(undefined);
     void fetch(previewUrl(path), { method: "HEAD", signal: controller.signal }).then(response => {
       if (controller.signal.aborted) return;
-      const reason = response.status === 501 ? "toolMissing" : response.status === 413 ? "tooLarge" : response.status === 504 ? "timeout" : "failed";
+      const reason = response.status === 501 ? "toolMissing" : response.status === 413 ? "tooLarge" : response.status === 504 ? "timeout" : response.status === 503 || response.status === 429 ? "busy" : "failed";
       setConversion(response.ok && response.headers.get("Content-Type")?.split(";")[0]?.trim() === "application/pdf" ? { path } : { path, reason });
     }).catch(() => { if (!controller.signal.aborted) setConversion({ path, reason: "failed" }); });
     return () => controller.abort();

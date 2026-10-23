@@ -108,7 +108,7 @@ it.each(["application/pdf", "application/octet-stream"])("verifies PDF with HEAD
   } finally { act(() => root.unmount()); host.remove(); }
 });
 
-it.each([[200, ""], [501, "Preview tool unavailable"], [413, "File too large"], [422, "Conversion failed"], [504, "Conversion timed out"]])("office conversion state and result %s", async (status, reason) => {
+it.each([[200, ""], [501, "Preview tool unavailable"], [413, "File too large"], [422, "Conversion failed"], [504, "Conversion timed out"], [503, "Please try again shortly"], [429, "Please try again shortly"]])("office conversion state and result %s", async (status, reason) => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   let resolve!: (response: Response) => void;
   const fetchMock = vi.fn().mockReturnValue(new Promise<Response>(done => { resolve = done; }));

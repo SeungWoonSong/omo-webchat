@@ -28,6 +28,7 @@ const pdfCSP = "script-src 'none'; connect-src 'none'; base-uri 'none'; form-act
 
 // One process-wide conversion lane also serializes cache publication/eviction.
 var previewLane = make(chan struct{}, 1)
+var previewWaiting = make(chan struct{}, 8)
 var previewFlights = struct {
 	sync.Mutex
 	jobs map[string]*previewJob
@@ -38,6 +39,8 @@ type previewJob struct {
 	cancel  context.CancelFunc
 	waiters int
 	status  int
+	result  string
+	tempDir string
 }
 
 func officeExtension(ext string) bool {
@@ -57,6 +60,9 @@ func previewBinary(env, fallback string) (string, error) {
 }
 
 func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
+	if r.Context().Err() != nil {
+		return
+	}
 	target, err := s.resolvePath(r.URL.Query().Get("path"))
 	if err != nil {
 		writeError(w, 400, "invalid path")
@@ -72,17 +78,8 @@ func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 400, "invalid path")
 		return
 	}
-	input, err := os.OpenInRoot(s.cfg.Root, rel)
-	if err != nil {
-		s.writeFsError(w, err)
-		return
-	}
-	defer func() {
-		if input != nil {
-			input.Close()
-		}
-	}()
-	info, err := input.Stat()
+	// Metadata does not retain an input descriptor while waiting for the lane.
+	info, err := os.Stat(target)
 	if err != nil {
 		s.writeFsError(w, err)
 		return
@@ -109,7 +106,8 @@ func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 	cacheDir := filepath.Join(stateDir, "preview-cache")
 	key := fmt.Sprintf("%x", sha256.Sum256([]byte(fmt.Sprintf("%s|%d|%d", target, info.Size(), info.ModTime().UnixNano()))))
 	cached := filepath.Join(cacheDir, key+".pdf")
-	if !servePreviewPDF(w, r, cached, target) {
+	cacheOK := preparePreviewCache(cacheDir)
+	if !cacheOK || !servePreviewPDF(w, r, cached, target) {
 		soffice, err := previewBinary("CHAT_SOFFICE_BINARY", "soffice")
 		if err != nil {
 			writeError(w, 501, "preview_tool_missing")
@@ -123,21 +121,34 @@ func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		// Duplicate descriptors stay open until the shared job is finished, even if
-		// its first HTTP caller disconnects. Copy only from a root-confined handle.
 		previewFlights.Lock()
 		job := previewFlights.jobs[cached]
 		if job == nil {
-			ctx, cancel := context.WithCancel(context.Background())
+			// Followers share the existing queue entry; admit only unique jobs.
+			laneHeld := false
+			select {
+			case previewLane <- struct{}{}:
+				laneHeld = true
+			default:
+				select {
+				case previewWaiting <- struct{}{}:
+				default:
+					previewFlights.Unlock()
+					w.Header().Set("Retry-After", "2")
+					writeError(w, http.StatusServiceUnavailable, "busy")
+					return
+				}
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 			job = &previewJob{done: make(chan struct{}), cancel: cancel}
 			previewFlights.jobs[cached] = job
-			source := input
-			input = nil
 			go func() {
-				defer source.Close()
-				status := s.convertPreview(ctx, source, info.Size(), ext, soffice, hwp, cacheDir, cached)
+				status, result, tempDir := s.convertPreview(ctx, rel, info, ext, soffice, hwp, cacheDir, cached, laneHeld, cacheOK)
 				previewFlights.Lock()
-				job.status = status
+				job.status, job.result, job.tempDir = status, result, tempDir
+				if job.waiters == 0 && tempDir != "" {
+					os.RemoveAll(tempDir)
+				}
 				if previewFlights.jobs[cached] == job {
 					delete(previewFlights.jobs, cached)
 				}
@@ -156,6 +167,9 @@ func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 					delete(previewFlights.jobs, cached)
 				}
 				job.cancel()
+				if job.tempDir != "" {
+					os.RemoveAll(job.tempDir)
+				}
 			}
 			previewFlights.Unlock()
 		}()
@@ -175,14 +189,14 @@ func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 			writeError(w, job.status, reason)
 			return
 		}
-		if !servePreviewPDF(w, r, cached, target) {
+		if !servePreviewPDF(w, r, job.result, target) {
 			writeError(w, 422, "conversion_failed")
 		}
 	}
 }
 
 func servePreviewPDF(w http.ResponseWriter, r *http.Request, cached, target string) bool {
-	f, err := os.Open(cached)
+	f, err := openPreviewPDF(cached)
 	if err != nil {
 		return false
 	}
@@ -202,24 +216,41 @@ func servePreviewPDF(w http.ResponseWriter, r *http.Request, cached, target stri
 	return true
 }
 
-func (s *Server) convertPreview(ctx context.Context, source *os.File, size int64, ext, soffice, hwp, cacheDir, cached string) int {
-	select {
-	case previewLane <- struct{}{}:
+func (s *Server) convertPreview(ctx context.Context, rel string, expected os.FileInfo, ext, soffice, hwp, cacheDir, cached string, laneHeld, cacheOK bool) (status int, result, tempDir string) {
+	if !laneHeld {
+		select {
+		case previewLane <- struct{}{}:
+			laneHeld = true
+		case <-ctx.Done():
+		}
+		<-previewWaiting
+	}
+	if laneHeld {
 		defer func() { <-previewLane }()
-	case <-ctx.Done():
-		return 422
 	}
 	if ctx.Err() != nil {
-		return 422
+		return 504, "", ""
 	}
-	// Another request may have published this key before this job acquired the lane.
-	if f, err := os.Open(cached); err == nil {
-		var head [5]byte
-		n, _ := f.Read(head[:])
-		f.Close()
-		if n == 5 && string(head[:]) == "%PDF-" {
-			return 0
+	// A previous job may have published after this request's initial cache miss.
+	if cacheOK && preparePreviewCache(cacheDir) {
+		if f, err := openPreviewPDF(cached); err == nil {
+			var head [5]byte
+			n, _ := f.Read(head[:])
+			f.Close()
+			if n == 5 && string(head[:]) == "%PDF-" {
+				return 0, cached, ""
+			}
 		}
+	}
+	// Open only after admission to the conversion lane, always root-confined.
+	source, err := os.OpenInRoot(s.cfg.Root, rel)
+	if err != nil {
+		return 422, "", ""
+	}
+	defer source.Close()
+	info, err := source.Stat()
+	if err != nil || !info.Mode().IsRegular() || !os.SameFile(expected, info) || info.Size() != expected.Size() || !info.ModTime().Equal(expected.ModTime()) {
+		return 422, "", ""
 	}
 	timeout := s.previewTimeout
 	if timeout == 0 {
@@ -229,21 +260,25 @@ func (s *Server) convertPreview(ctx context.Context, source *os.File, size int64
 	defer cancel()
 	tmp, err := os.MkdirTemp("", "webchat-preview-")
 	if err != nil {
-		return 422
+		return 422, "", ""
 	}
-	defer os.RemoveAll(tmp)
+	defer func() {
+		if tempDir == "" {
+			os.RemoveAll(tmp)
+		}
+	}()
 	input := filepath.Join(tmp, "input"+ext)
 	dst, err := os.OpenFile(input, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if err != nil {
-		return 422
+		return 422, "", ""
 	}
 	n, copyErr := io.Copy(dst, io.LimitReader(source, maxPreviewInput+1))
 	closeErr := dst.Close()
 	if n > maxPreviewInput {
-		return 413
+		return 413, "", ""
 	}
-	if copyErr != nil || closeErr != nil || n != size {
-		return 422
+	if copyErr != nil || closeErr != nil || n != expected.Size() {
+		return 422, "", ""
 	}
 	if hwp != "" {
 		odt := filepath.Join(tmp, "input.odt")
@@ -256,39 +291,41 @@ func (s *Server) convertPreview(ctx context.Context, source *os.File, size int64
 		err = s.runPreviewCommand(ctx, tmp, soffice, "-env:UserInstallation="+profile, "--headless", "--norestore", "--convert-to", "pdf", "--outdir", tmp, input)
 	}
 	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-		return 504
+		return 504, "", ""
 	}
 	if err != nil || ctx.Err() != nil {
-		return 422
+		return 422, "", ""
 	}
-	pdf, err := os.Open(filepath.Join(tmp, "input.pdf"))
+	pdfPath := filepath.Join(tmp, "input.pdf")
+	pdf, err := openPreviewPDF(pdfPath)
 	if err != nil {
-		return 422
+		return 422, "", ""
 	}
 	defer pdf.Close()
 	var head [5]byte
 	nread, _ := pdf.ReadAt(head[:], 0)
 	if nread != 5 || string(head[:]) != "%PDF-" {
-		return 422
+		return 422, "", ""
 	}
-	if err := os.MkdirAll(cacheDir, 0700); err != nil {
-		return 422
+	// Cache failures must not prevent streaming a successfully converted PDF.
+	if !cacheOK || !preparePreviewCache(cacheDir) {
+		return 0, pdfPath, tmp
 	}
 	dest, err := os.CreateTemp(cacheDir, ".preview-*")
 	if err != nil {
-		return 422
+		return 0, pdfPath, tmp
 	}
 	defer os.Remove(dest.Name())
 	_, err = io.Copy(dest, pdf)
 	closeErr = dest.Close()
 	if err != nil || closeErr != nil {
-		return 422
+		return 0, pdfPath, tmp
 	}
 	if err = os.Rename(dest.Name(), cached); err != nil {
-		return 422
+		return 0, pdfPath, tmp
 	}
 	evictPreviewCache(cacheDir)
-	return 0
+	return 0, cached, ""
 }
 
 // Keep only a bounded stderr tail; converters may emit document text or paths,
