@@ -2,7 +2,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { I18nContext } from "../i18n";
+import { I18nContext, persistLang } from "../i18n";
 import { useAppConfig } from "../app-config";
 import { SettingsMenu } from "./SettingsMenu";
 
@@ -84,5 +84,21 @@ describe("SettingsMenu engine restart item", () => {
     await renderMenu(() => undefined, () => undefined);
     openPanel();
     expect(panelItems().map((item) => item.textContent)).toEqual(["계정", "시스템 상태", "omo 엔진 다시 시작"]);
+  });
+
+  it.each([
+    ["ko", "계정"],
+    ["en", "Accounts"],
+  ] as const)("shows the %s Accounts action with the same icon and label layout as its neighbours", async (lang, label) => {
+    persistLang(lang);
+    await renderMenu(() => undefined, () => undefined);
+
+    openPanel();
+
+    const accountsItem = panelItems().find((item) => item.textContent === label);
+    expect(accountsItem).toBeDefined();
+    expect(accountsItem?.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+    expect(accountsItem?.querySelector("span")?.textContent).toBe(label);
+    expect(accountsItem?.disabled).toBe(false);
   });
 });

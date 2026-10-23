@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../i18n";
 import { useTheme } from "../app-config";
-import { IconActivity, IconPower, IconSettings } from "./icons";
+import { IconActivity, IconPower, IconSettings, IconUser } from "./icons";
 import { FONT_PRESETS, FONT_SIZE_MAX, FONT_SIZE_MIN } from "../lib/font";
 import { THEME_OPTIONS } from "../lib/theme";
 import { AccountsPanel } from "./AccountsPanel";
@@ -132,10 +132,17 @@ export function SettingsMenu({ onOpenStats, onOpenEngineRestart }: SettingsMenuP
           </div>
 
           <div className="th-settings-divider" />
-          <button type="button" className="th-settings-item" onClick={() => {
-            setSettingsOpen(false);
-            setAccountsOpen(true);
-          }}>{t("accounts.title")}</button>
+          <button
+            type="button"
+            className="th-settings-item"
+            onClick={() => {
+              setSettingsOpen(false);
+              setAccountsOpen(true);
+            }}
+          >
+            <IconUser size={14} />
+            <span>{t("accounts.title")}</span>
+          </button>
 
           <button
             type="button"
