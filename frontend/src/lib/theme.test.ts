@@ -253,13 +253,17 @@ describe("PWA manifest", () => {
     readonly background_color?: string;
   };
   const productName = (JSON.parse(readFileSync("src/i18n/locales/en.json", "utf8")) as Record<string, string>)[
-    "app.title"
+    "app.name"
   ];
 
-  it("names the installed app with the real product name, never a terminal", () => {
-    expect(productName).toBe("omo-webchat");
-    expect(manifest.name).toBe(productName);
-    expect(manifest.short_name).toBe(productName);
+  it("derives install-time branding from the single locale product-name key", () => {
+    expect(productName).toBe("AI Workspace");
+    expect(manifest.name).toBeUndefined();
+    expect(manifest.short_name).toBeUndefined();
+    const config = readFileSync("vite.config.ts", "utf8");
+    expect(config).toContain("name: en['app.name'], short_name: en['app.name']");
+    expect(pageHtml).toContain("<title>%APP_NAME%</title>");
+    expect(pageHtml).not.toMatch(/\bomo\b/i);
   });
 
   it("uses the default theme's canvas as the static install-time chrome", () => {

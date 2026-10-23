@@ -27,7 +27,7 @@ const readStyle = (name: string): string => readFileSync(`${STYLE_DIR}/${name}`,
 
 const stripComments = (css: string): string => css.replace(/\/\*[\s\S]*?\*\//g, "");
 
-type TierName = "display" | "title" | "input" | "body" | "secondary" | "label" | "micro";
+type TierName = "display" | "title" | "input" | "body" | "secondary" | "label" | "micro" | "prose" | "code" | "header";
 
 type TierSpec = {
   /** Size multiplier of --th-font-size from the DESIGN.md type-scale table. */
@@ -41,10 +41,13 @@ const TIERS: Readonly<Record<TierName, TierSpec>> = {
   display: { factor: 1.7143, line: 1.15, tracking: "-0.025em" },
   title: { factor: 1.2857, line: 1.25, tracking: "-0.018em" },
   input: { factor: 1.1429, line: 1.4, tracking: "-0.008em" },
+  prose: { factor: 1.1429, line: 1.7, tracking: "0" },
+  code: { factor: 0.9286, line: 1.55, tracking: "0" },
+  header: { factor: 1.0714, line: 1.4, tracking: "0" },
   body: { factor: 1, line: 1.65, tracking: "-0.005em" },
-  secondary: { factor: 0.9286, line: 1.45, tracking: "0" },
-  label: { factor: 0.8571, line: 1.35, tracking: "0.01em" },
-  micro: { factor: 0.7857, line: 1.3, tracking: "0.02em" },
+  secondary: { factor: 1, line: 1.45, tracking: "0" },
+  label: { factor: 1, line: 1.35, tracking: "0.01em" },
+  micro: { factor: 0.9286, line: 1.3, tracking: "0.02em" },
 };
 
 type Fixture = {
@@ -60,7 +63,10 @@ const FIXTURES: readonly Fixture[] = [
   { tier: "display", selector: ".th-empty-title", weight: 590 },
   { tier: "title", selector: ".th-confirm-title", weight: 590 },
   { tier: "input", selector: ".th-chat-input textarea", weight: null },
-  { tier: "body", selector: ".th-chat-msg", weight: null },
+  { tier: "body", selector: "body", weight: null },
+  { tier: "prose", selector: ".th-chat-msg", weight: null },
+  { tier: "code", selector: ".th-tool-body", weight: null },
+  { tier: "header", selector: ".th-termhead-name", weight: 590 },
   { tier: "secondary", selector: ".th-tree-label", weight: null },
   { tier: "label", selector: ".th-tool-head", weight: 510 },
   { tier: "micro", selector: ".th-tool-status", weight: 510 },
@@ -73,6 +79,8 @@ const FIXTURE_HTML = `
   <div class="th-confirm"><h2 class="th-confirm-title">Confirm</h2></div>
   <div class="th-chat-input"><textarea></textarea></div>
   <div class="th-chat-msg">Message prose</div>
+  <header class="th-termhead"><span class="th-termhead-name">한국어 제목</span></header>
+  <div class="th-tool-body">tool output</div>
   <div class="th-tree"><span class="th-tree-label">session</span></div>
   <div class="th-tool">
     <button type="button" class="th-tool-head">tool</button>
@@ -154,6 +162,7 @@ describe("type scale computed from the user's font-size setting", () => {
   const STYLE_FILES = [
     "tokens.css",
     "global.css",
+    "terminal-header.css",
     "app-empty.css",
     "chat-composer.css",
     "chat-transcript.css",
@@ -187,7 +196,7 @@ describe("type scale computed from the user's font-size setting", () => {
   });
 
   const elementFor = (fixture: Fixture): Element => {
-    const el = fixtureRoot.querySelector(fixture.selector);
+    const el = fixture.selector === "body" ? document.body : fixtureRoot.querySelector(fixture.selector);
     if (!el) throw new Error(`fixture element ${fixture.selector} missing`);
     return el;
   };
@@ -249,11 +258,11 @@ describe("type scale token block", () => {
   });
 
   it("keeps phone DAG chrome capped and graph text fixed without changing the List scale", () => {
-    expect(tokens).toContain("--th-type-dag-compact-details-size: min(var(--th-type-secondary-size), 12px);");
+    expect(tokens).toContain("--th-type-dag-compact-details-size: min(var(--th-type-secondary-size), 13px);");
     expect(tokens).toContain("--th-type-dag-compact-name-size: min(var(--th-type-label-size), 13px);");
-    expect(tokens).toContain("--th-type-dag-compact-counts-size: min(var(--th-type-micro-size), 11.1px);");
-    expect(tokens).toContain("--th-type-dag-compact-graph-title-size: 11px;");
-    expect(tokens).toContain("--th-type-dag-compact-graph-state-size: 11.1px;");
+    expect(tokens).toContain("--th-type-dag-compact-counts-size: min(var(--th-type-micro-size), 13px);");
+    expect(tokens).toContain("--th-type-dag-compact-graph-title-size: 13px;");
+    expect(tokens).toContain("--th-type-dag-compact-graph-state-size: 13px;");
   });
 });
 
@@ -267,7 +276,7 @@ describe("stylesheet type contracts", () => {
     for (const { file, css } of componentCss) {
       for (const match of css.matchAll(/font-size\s*:\s*([^;}]+);/g)) {
         const value = (match[1] ?? "").trim();
-        if (!/^var\(--th-type-(?:display|title|input|body|secondary|label|micro|dag-compact-(?:details|name|counts|graph-state))-size\)$/.test(value)) {
+        if (!/^var\(--th-type-(?:display|title|input|body|secondary|label|micro|prose|code|header|heading[123]|dag-compact-(?:details|name|counts|graph-state))-size\)$/.test(value)) {
           offenders.push(`${file}: font-size: ${value}`);
         }
       }

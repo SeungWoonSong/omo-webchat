@@ -29,7 +29,7 @@
  *     --th-glass with --th-glass-filter over a solid --th-surface-overlay
  *     fallback, plus the --th-highlight top edge and --th-shadow-overlay.
  *   - Text is a strict three-tier hierarchy (text > text-dim > muted) with a
- *     fourth metadata-only tier, --th-faint, held to 3:1 and allowlisted to
+ *     fourth metadata-only tier, --th-faint, held to 4.5:1 and allowlisted to
  *     metadata selectors by contrast.test.ts.
  *   - Pretendard Variable is the UI face (--th-font-sans); mono is reserved
  *     for code, paths, tool I/O, and identifiers.
@@ -79,15 +79,16 @@
 
   /* Three-tier text hierarchy plus a metadata-only fourth tier. The tiers
      hold the 4.5:1 matrix on every elevation and state fill (contract:
-     contrast.test.ts); --th-faint drops to the 3:1 metadata rule and may
+     contrast.test.ts); --th-faint also holds 4.5:1 and may
      appear only in allowlisted metadata selectors. Ordering stays
-     text > text-dim > muted > faint. */
+     text > text-dim > muted > faint. Muted also clears selected rows
+     and the composited user-bubble wash. */
   --th-text: #ededf0;
   --th-text-dim: #c4c4cc;
-  --th-muted: #a1a1aa;
-  /* METADATA ONLY (timestamps, counts, hints): >=3.0:1 on bg/surface/
-     composer/raised/tool-surface; usage allowlisted by contrast.test.ts. */
-  --th-faint: #71717a;
+  --th-muted: #b7b7c1;
+  /* METADATA ONLY (timestamps, counts, hints): >=4.5:1 on elevation and
+     state fills; usage allowlisted by contrast.test.ts. */
+  --th-faint: #a0a0a9;
   /* Disabled controls derive from the hierarchy: muted label on the level
      the control sits at, so a disabled row never invents a new tier. */
   --th-disabled-fg: var(--th-muted);
@@ -161,20 +162,21 @@
      for code, paths, tool I/O, and identifiers ONLY. */
   --th-font-mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono",
     Menlo, Consolas, "Liberation Mono", monospace;
-  --th-font-sans: "Pretendard Variable", Pretendard, -apple-system,
-    BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR",
-    sans-serif;
+  --th-font-sans: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR",
+    "Malgun Gothic", "Pretendard Variable", system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
 
   /* User-controlled base of the type scale; app-config.ts overrides it inline
    * on <html> from the font-size setting. The default keeps the scale valid
    * before hydration. */
   --th-font-size: 14px;
+  --th-space-prose: 0.75em;
 
   /* Type scale. Every text font-size consumes one tier as a complete style -
    * size, line-height, and tracking together - so a change to
    * --th-font-size moves the full hierarchy. Tracking tightens as text gets
-   * larger. Body runs slightly airier (1.65) for the redesigned prose
-   * rhythm; tiers and weights are unchanged from the previous system. */
+   * larger. Body is the 14px UI base; the dedicated prose tier is 16px
+   * with 1.7 line-height, independent of the 13px code/caption tiers. */
   --th-type-display-size: calc(var(--th-font-size) * 1.7143);
   --th-type-display-line: 1.15;
   --th-type-display-tracking: -0.025em;
@@ -187,24 +189,36 @@
   --th-type-body-size: var(--th-font-size);
   --th-type-body-line: 1.65;
   --th-type-body-tracking: -0.005em;
-  --th-type-secondary-size: calc(var(--th-font-size) * 0.9286);
+  --th-type-secondary-size: calc(var(--th-font-size) * 1);
   --th-type-secondary-line: 1.45;
   --th-type-secondary-tracking: 0;
-  --th-type-label-size: calc(var(--th-font-size) * 0.8571);
+  --th-type-label-size: calc(var(--th-font-size) * 1);
   --th-type-label-line: 1.35;
   --th-type-label-tracking: 0.01em;
-  --th-type-micro-size: calc(var(--th-font-size) * 0.7857);
+  --th-type-micro-size: calc(var(--th-font-size) * 0.9286);
   --th-type-micro-line: 1.3;
   --th-type-micro-tracking: 0.02em;
+  --th-type-prose-size: calc(var(--th-font-size) * 1.1429);
+  --th-type-prose-line: 1.7;
+  --th-type-prose-tracking: 0;
+  --th-type-code-size: calc(var(--th-font-size) * 0.9286);
+  --th-type-code-line: 1.55;
+  --th-type-code-tracking: 0;
+  --th-type-header-size: calc(var(--th-font-size) * 1.0714);
+  --th-type-header-line: 1.4;
+  --th-type-header-tracking: 0;
+  --th-type-heading1-size: calc(var(--th-font-size) * 1.7143);
+  --th-type-heading2-size: calc(var(--th-font-size) * 1.4286);
+  --th-type-heading3-size: calc(var(--th-font-size) * 1.2857);
 
   /* The phone DAG chrome follows the user's tier until its compact cap;
    * graph labels are fixed for a stable, readable three-card overview.
    * List rows keep the ordinary uncapped type scale. */
-  --th-type-dag-compact-details-size: min(var(--th-type-secondary-size), 12px);
+  --th-type-dag-compact-details-size: min(var(--th-type-secondary-size), 13px);
   --th-type-dag-compact-name-size: min(var(--th-type-label-size), 13px);
-  --th-type-dag-compact-counts-size: min(var(--th-type-micro-size), 11.1px);
-  --th-type-dag-compact-graph-title-size: 11px;
-  --th-type-dag-compact-graph-state-size: 11.1px;
+  --th-type-dag-compact-counts-size: min(var(--th-type-micro-size), 13px);
+  --th-type-dag-compact-graph-title-size: 13px;
+  --th-type-dag-compact-graph-state-size: 13px;
 
   /* The only three text weights. Fonts without an exact intermediate weight
    * use the browser's nearest available face; components never substitute ad
@@ -290,12 +304,12 @@
   --th-border-strong: var(--th-border-overlay);
 
   /* Three-tier hierarchy, darkened to hold the 4.5:1 matrix on white fills;
-     --th-faint stays metadata-only at >=3.0:1. */
+     --th-faint stays metadata-only at >=4.5:1. */
   --th-text: #18181b;
   --th-text-dim: #3f3f46;
-  --th-muted: #5f5f68;
+  --th-muted: #55555e;
   /* METADATA ONLY; see the dark scope for the rule and its allowlist. */
-  --th-faint: #8b8b94;
+  --th-faint: #62626b;
   --th-disabled-fg: var(--th-muted);
   --th-disabled-bg: var(--th-hover);
 

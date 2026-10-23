@@ -551,7 +551,7 @@ describe("SplitView empty pane", () => {
 		expect(separator?.getAttribute("aria-valuemax")).toBe("50");
 	});
 
-	it("retains the omo provider across session switches without sending a model", () => {
+	it("keeps engine routing across session switches without exposing a provider badge or sending a model", () => {
 		const node = leaf("chat-one");
 		const sessions = new Map([
 			[
@@ -577,9 +577,7 @@ describe("SplitView empty pane", () => {
 		]);
 		render(node, makeActions(), true, sessions);
 
-		expect(container.querySelector(".th-provider-badge")?.textContent).toBe(
-			"omo",
-		);
+		expect(container.querySelector(".th-provider-badge")).toBeNull();
 		const firstClient = vi.mocked(connectChat).mock.results[0]?.value;
 		expect(firstClient.send).toHaveBeenCalledWith({
 			type: "chat.create",
@@ -589,9 +587,7 @@ describe("SplitView empty pane", () => {
 		expect(JSON.stringify(firstClient.send.mock.calls)).not.toContain("model");
 
 		render(leaf("chat-two"), makeActions(), true, sessions);
-		expect(container.querySelector(".th-provider-badge")?.textContent).toBe(
-			"omo",
-		);
+		expect(container.querySelector(".th-provider-badge")).toBeNull();
 		const secondClient = vi.mocked(connectChat).mock.results[1]?.value;
 		expect(secondClient.send).toHaveBeenCalledWith({
 			type: "chat.create",

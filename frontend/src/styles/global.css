@@ -54,6 +54,9 @@ body {
   font-feature-settings: "ss06" off;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  line-break: strict;
 }
 
 button {

@@ -88,7 +88,7 @@ describe("EngineRestartDialog", () => {
 
   it("shows the plain confirmation without a warning when no chats are running", async () => {
     await renderDialog(0);
-    expect(panel().querySelector(".th-confirm-title")?.textContent).toBe("Restart omo engine");
+    expect(panel().querySelector(".th-confirm-title")?.textContent).toBe("Restart engine");
     expect(panel().querySelector(".th-alert--warning")).toBeNull();
     expect(statusRegion()).toBeNull();
   });

@@ -17,18 +17,18 @@
   box-shadow: var(--th-shadow-surface);
 }
 
-/* Top-bar hierarchy (DESIGN.md "Type scale"): the primary title is Secondary
-   at emphasize weight and grows to the available space; provider metadata is
+/* Top-bar hierarchy (DESIGN.md "Type scale"): the primary title is Header
+   at announce weight and grows to the available space; provider metadata is
    quiet Label text. No border-bottom hairline: the Surface header separates
    from the Canvas transcript below by tone plus the soft surface shadow. */
 .th-termhead-name {
   flex: 1 1 auto;
   min-width: 0;
   font-family: var(--th-font-sans);
-  font-size: var(--th-type-secondary-size);
-  font-weight: var(--th-weight-emphasize);
-  line-height: var(--th-type-secondary-line);
-  letter-spacing: var(--th-type-secondary-tracking);
+  font-size: var(--th-type-header-size);
+  font-weight: var(--th-weight-announce);
+  line-height: var(--th-type-header-line);
+  letter-spacing: var(--th-type-header-tracking);
   color: var(--th-text);
   white-space: nowrap;
   overflow: hidden;

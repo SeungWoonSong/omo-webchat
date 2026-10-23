@@ -30,17 +30,6 @@
   border-color: var(--th-border-visible);
 }
 
-.th-login-brand {
-  display: flex;
-  align-items: center;
-  gap: var(--th-space-2);
-  font-size: var(--th-type-label-size);
-  font-weight: var(--th-weight-emphasize);
-  line-height: var(--th-type-label-line);
-  letter-spacing: var(--th-type-label-tracking);
-  color: var(--th-muted);
-}
-
 .th-login-title {
   display: flex;
   align-items: center;

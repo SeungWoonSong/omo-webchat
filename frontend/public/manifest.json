@@ -1,6 +1,4 @@
 {
-  "name": "omo-webchat",
-  "short_name": "omo-webchat",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
