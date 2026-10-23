@@ -272,7 +272,7 @@ describe("token contrast contracts (WCAG 2.1)", () => {
     // Whole-card tint under the header and body in both disclosure states.
     "--th-tool-record-surface",
   ] as const;
-  const STATE_FILLS = ["--th-hover", "--th-active"] as const;
+  const STATE_FILLS = ["--th-hover", "--th-active", "--th-accent-select"] as const;
   const TEXT_BACKGROUNDS = [...ELEVATION_FILLS, ...STATE_FILLS] as const;
   // The fills metadata (timestamps, counts, hints) actually lands on.
   const FAINT_FILLS = [
@@ -527,6 +527,23 @@ describe("token contrast contracts (WCAG 2.1)", () => {
               `${pair.ratio.toFixed(1)}:1${pair.note ? ` (${pair.note})` : ""}`,
           );
         }
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
+  it("holds reading tiers on the actual composited user-bubble paint", () => {
+    const css = readFileSync("src/styles/chat-transcript.css", "utf8");
+    expect(css).toContain("background: var(--th-surface-user)");
+    expect(css).toContain("background-image: linear-gradient(var(--th-border-user), var(--th-border-user))");
+    const failures: string[] = [];
+    for (const scope of scopes) {
+      const surface = compositeOver(scopeColor(scope, "--th-surface-user"), scopeColor(scope, "--th-bg"));
+      const bubble = compositeOver(scopeColor(scope, "--th-border-user"), surface);
+      for (const fg of TEXT_TIERS) {
+        const ink = compositeOver(scopeColor(scope, fg), bubble);
+        const ratio = contrastRatio(ink, bubble);
+        if (ratio < NORMAL_TEXT) failures.push(`[${scope.selector}] ${fg} on washed user bubble: ${ratio.toFixed(3)}:1`);
       }
     }
     expect(failures).toEqual([]);

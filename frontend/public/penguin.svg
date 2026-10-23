@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="tile" x1="256" y1="24" x2="256" y2="488" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fafbfc"/>
+      <stop offset="1" stop-color="#dce0e4"/>
+    </linearGradient>
+    <linearGradient id="coat" x1="168" y1="104" x2="352" y2="408" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#59666b"/>
+      <stop offset="1" stop-color="#25383e"/>
+    </linearGradient>
+  </defs>
+  <rect x="24" y="24" width="464" height="464" rx="112" fill="url(#tile)" stroke="#c9d0d5" stroke-width="10"/>
+  <rect x="36" y="36" width="440" height="440" rx="102" stroke="#fff" stroke-opacity=".8" stroke-width="5"/>
+  <g stroke="#152e35" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M155 239C120 249 91 292 91 341C114 346 144 322 163 296" fill="url(#coat)"/>
+    <path d="M357 239C392 249 421 292 421 341C398 346 368 322 349 296" fill="url(#coat)"/>
+    <path d="M218 395C204 398 177 418 168 432C193 441 226 440 248 427L248 399" fill="#a9b6ba"/>
+    <path d="M294 395C308 398 335 418 344 432C319 441 286 440 264 427L264 399" fill="#a9b6ba"/>
+    <path d="M256 88C182 88 143 149 143 224L137 320C133 385 182 419 256 419C330 419 379 385 375 320L369 224C369 149 330 88 256 88Z" fill="url(#coat)"/>
+    <path d="M256 179C234 144 185 155 174 204C164 246 181 260 173 289C154 361 191 389 256 389C321 389 358 361 339 289C331 260 348 246 338 204C327 155 278 144 256 179Z" fill="#f7f8f9" stroke-width="8"/>
+    <path d="M237 246Q256 232 275 246L256 264Z" fill="#a9b6ba" stroke-width="8"/>
+  </g>
+  <ellipse cx="211" cy="221" rx="13" ry="17" fill="#152e35"/>
+  <ellipse cx="301" cy="221" rx="13" ry="17" fill="#152e35"/>
+  <circle cx="207" cy="216" r="4" fill="#fff"/>
+  <circle cx="297" cy="216" r="4" fill="#fff"/>
+</svg>

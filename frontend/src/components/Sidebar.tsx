@@ -314,7 +314,7 @@ export function Sidebar({
         <div className="th-sidebar-inner">
           <div className="th-sidebar-nav">
             <span className="th-sidebar-logo">
-              <img className="th-sidebar-logo-icon" src="./icon-192.png" alt="" />
+              <img className="th-sidebar-logo-icon" src="./penguin.svg" alt="" />
               <span className="th-sidebar-brand">{t("app.name")}</span>
             </span>
             <div className="th-sidebar-nav-actions">

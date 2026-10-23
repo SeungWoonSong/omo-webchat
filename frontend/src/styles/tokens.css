@@ -81,10 +81,11 @@
      hold the 4.5:1 matrix on every elevation and state fill (contract:
      contrast.test.ts); --th-faint also holds 4.5:1 and may
      appear only in allowlisted metadata selectors. Ordering stays
-     text > text-dim > muted > faint. */
+     text > text-dim > muted > faint. Muted also clears selected rows
+     and the composited user-bubble wash. */
   --th-text: #ededf0;
   --th-text-dim: #c4c4cc;
-  --th-muted: #a1a1aa;
+  --th-muted: #b7b7c1;
   /* METADATA ONLY (timestamps, counts, hints): >=4.5:1 on elevation and
      state fills; usage allowlisted by contrast.test.ts. */
   --th-faint: #a0a0a9;
@@ -306,7 +307,7 @@
      --th-faint stays metadata-only at >=4.5:1. */
   --th-text: #18181b;
   --th-text-dim: #3f3f46;
-  --th-muted: #5f5f68;
+  --th-muted: #55555e;
   /* METADATA ONLY; see the dark scope for the rule and its allowlist. */
   --th-faint: #62626b;
   --th-disabled-fg: var(--th-muted);
