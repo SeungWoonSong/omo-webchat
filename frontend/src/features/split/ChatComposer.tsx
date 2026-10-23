@@ -42,6 +42,7 @@ export interface ComposerQuestionTarget {
 
 interface ChatComposerProps {
   readonly session?: Pick<ChatSessionRef, "wsId" | "id">;
+  readonly suggestion?: { readonly text: string } | null;
   readonly commands: readonly CommandEntry[];
   readonly running: boolean;
   /** A blocking (waitForAnswer) question is pending: no Stop in the send
@@ -62,7 +63,7 @@ interface ChatComposerProps {
   readonly imageSupported?: boolean;
 }
 
-export function ChatComposer({ session, commands, running, blockingQuestion = false, questionTarget = null, questionTargets = [], disabled = false, retryDraft, onSubmit, onSteer, onStop, onNewChat, provider, cwd, imageSupported = true }: ChatComposerProps) {
+export function ChatComposer({ session, suggestion, commands, running, blockingQuestion = false, questionTarget = null, questionTargets = [], disabled = false, retryDraft, onSubmit, onSteer, onStop, onNewChat, provider, cwd, imageSupported = true }: ChatComposerProps) {
   const { t } = useT();
   const { input, setInput, draftCommand, setDraftCommand, pendingImage, setPendingImage, restoreDraft } = useSessionDraft(session);
   const [paletteHidden, setPaletteHidden] = useState(false);
@@ -70,6 +71,14 @@ export function ChatComposer({ session, commands, running, blockingQuestion = fa
   const paletteId = useId();
   const paletteListboxId = `${paletteId}-command-listbox`, paletteOptionIdPrefix = `${paletteId}-command-option`;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    if (!suggestion) return;
+    setInput(suggestion.text);
+    setDraftCommand(null);
+    setCaret(suggestion.text.length);
+    setPaletteHidden(true);
+    textareaRef.current?.focus();
+  }, [suggestion]);
   const isTouch = useMediaQuery(TOUCH_QUERY);
   const { clear: clearImage, pick: pickImage, fileInputRef } = useImageAttachment(pendingImage, setPendingImage);
   const attachments = useFileAttachments(session);

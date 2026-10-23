@@ -80,9 +80,9 @@ export const Markdown = memo(({ text, imageUrl }: { readonly text: string; reado
         const path = files && node?.properties["data-file-code"] && !className && !value.includes("\n") ? workspaceFilePath(value, files.root) : null;
         return path ? <ChatFileLink path={path}>{children}</ChatFileLink> : <code className={className} {...props}>{children}</code>;
       },
+      table: ({ children }) => <div className={imageUrl ? "th-viewer-table" : "th-chat-table-wrap"}><table>{children}</table></div>,
       ...(imageUrl ? {
       img: ({ src, alt }) => <img src={imageUrl(src ?? "")} alt={alt ?? ""} />,
-      table: ({ children }) => <div className="th-viewer-table"><table>{children}</table></div>,
     } : {}),
     }}
     rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}

@@ -4,6 +4,7 @@
 }
 
 .th-settings-panel {
+  --th-settings-control-height: 32px;
   position: absolute;
   bottom: calc(100% + 8px);
   left: 0;
@@ -55,21 +56,15 @@ html[data-th-keyboard-open] .th-settings-panel {
   display: flex;
   flex-direction: column;
   gap: var(--th-space-1);
-  padding: var(--th-space-1) 0;
+  padding: var(--th-space-1) var(--th-space-2);
 }
 
 .th-settings-label {
-  /* Section headings carry hierarchy: emphasize weight on the top text
-     tier (E15). The colour must be --th-text, not --th-text-dim: Q6
-     measures each heading against the row it heads, and the selected
-     segment / select / size values already render --th-text at up to
-     ~17.7:1 (light) and ~13.9:1 (dark) — a dimmer heading reads quieter
-     than its own group. Never uppercase. */
-  font-size: var(--th-type-label-size);
+  font-size: var(--th-type-micro-size);
   font-weight: var(--th-weight-emphasize);
   line-height: var(--th-type-label-line);
   letter-spacing: var(--th-type-label-tracking);
-  color: var(--th-text);
+  color: var(--th-muted);
 }
 
 /* Segmented control: a tonal pill track with no border and no inter-segment
@@ -85,7 +80,8 @@ html[data-th-keyboard-open] .th-settings-panel {
    cue on the near-white panel. */
 .th-settings-seg {
   display: flex;
-  padding: var(--th-space-0-5);
+  min-height: var(--th-settings-control-height);
+  padding: 0;
   background: var(--th-surface);
   border-radius: var(--th-radius-pill);
 }
@@ -96,7 +92,8 @@ html[data-th-keyboard-open] .th-settings-panel {
 
 .th-settings-seg-btn {
   flex: 1;
-  padding: var(--th-space-1) 0;
+  min-height: var(--th-settings-control-height);
+  padding: 0 var(--th-space-1);
   /* Transparent border so the selected thumb's hairline never changes the
      row height; only the colour switches. */
   border: 1px solid transparent;
@@ -148,6 +145,7 @@ html[data-th-keyboard-open] .th-settings-panel {
 }
 
 .th-settings-select {
+  min-height: var(--th-settings-control-height);
   width: 100%;
   padding: var(--th-space-1) var(--th-space-2);
   border: 1px solid var(--th-border);
@@ -168,8 +166,9 @@ html[data-th-keyboard-open] .th-settings-panel {
 }
 
 .th-settings-size-btn {
-  width: 28px;
-  height: 28px;
+  width: var(--th-settings-control-height);
+  height: var(--th-settings-control-height);
+  padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -231,4 +230,9 @@ html[data-th-keyboard-open] .th-settings-panel {
 .th-settings-item:hover {
   background: var(--th-hover);
   color: var(--th-text);
+}
+
+@media (pointer: coarse), (max-width: 768px) {
+  .th-settings-panel { --th-settings-control-height: 44px; }
+  .th-settings-item { min-height: 44px; }
 }

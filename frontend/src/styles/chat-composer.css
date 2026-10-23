@@ -101,8 +101,15 @@
 }
 
 .th-chat-input .th-btn--danger {
-  background: var(--th-error);
-  color: var(--th-error-fg);
+  background: transparent;
+  color: var(--th-muted);
+  box-shadow: inset 0 0 0 1px var(--th-border);
+}
+
+.th-chat-input .th-btn--danger:hover:not(:disabled),
+.th-chat-input .th-btn--danger:focus-visible {
+  background: var(--th-error-bg);
+  color: var(--th-error);
 }
 
 /* Run-time steer action: the same send affordance, placed beside the fixed

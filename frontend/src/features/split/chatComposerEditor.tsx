@@ -1,5 +1,5 @@
 import type { ClipboardEventHandler, KeyboardEventHandler, RefObject } from "react";
-import { IconArrowUp, IconMessage, IconX } from "../../components/icons";
+import { IconArrowUp, IconMessage } from "../../components/icons";
 
 interface ChatComposerEditorProps {
   readonly textareaRef: RefObject<HTMLTextAreaElement>;
@@ -102,7 +102,7 @@ export function ChatComposerEditor({
         disabled={disabled || (!stopMode && (isCompacting || sendBlocked))}
         onClick={stopMode ? onStop : undefined}
       >
-        {stopMode ? <IconX size={18} /> : <IconArrowUp size={18} />}
+        {stopMode ? <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><rect x="4" y="4" width="10" height="10" rx="1" fill="currentColor" /></svg> : <IconArrowUp size={18} />}
         <span className="th-chat-send-label">{sendLabel}</span>
       </button>
     </>

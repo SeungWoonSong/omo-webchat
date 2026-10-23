@@ -96,6 +96,7 @@ const COMPONENT_OWNED_CUSTOM_PROPERTIES = new Map([
   ["--th-chat-gutter", "chat-pane.css"],
   ["--th-chat-scrollbar", "chat-pane.css"],
   ["--th-queue-body-max", "chat-pane.css"],
+  ["--th-settings-control-height", "settings-menu.css"],
 ]);
 
 const isProtectedDesignTokenName = (name: string, file: string): boolean =>
@@ -226,8 +227,8 @@ describe("spacing and elevation contracts", () => {
         `oracle.css:1: ${name} may be declared only in tokens.css`,
       ]);
     }
-    for (const name of COMPONENT_OWNED_CUSTOM_PROPERTIES.keys()) {
-      expect(localDesignTokenRedefinitions("chat-pane.css", `.x { ${name}: 4px; }`)).toEqual([]);
+    for (const [name, owner] of COMPONENT_OWNED_CUSTOM_PROPERTIES) {
+      expect(localDesignTokenRedefinitions(owner, `.x { ${name}: 4px; }`)).toEqual([]);
     }
     expect(
       localDesignTokenRedefinitions(
@@ -337,26 +338,24 @@ describe("spacing and elevation contracts", () => {
   });
 
   it("consumes the dedicated user surface for the borderless pill bubble", () => {
-    // E23: the dedicated user fill plus a neutral wash restores contrast
-    // against the pane. The bubble remains borderless at every corner, with
-    // no accent bar, while contrast.test.ts measures the composed fill.
+    // The quiet fit-content bubble uses the dedicated user surface alone.
+    // contrast.test.ts measures text on this unwashed fill in both themes.
     const body = ruleBody(chatTranscript, ".th-chat-msg--user");
     const userViolations: string[] = [];
     if (wholeVarToken(declarationValue(body, "background")) !== "--th-surface-user") {
       userViolations.push("chat-transcript.css .th-chat-msg--user is missing background: var(--th-surface-user)");
     }
-    if (declarationValue(body, "background-image") !== "linear-gradient(var(--th-border-user), var(--th-border-user))") {
-      userViolations.push("chat-transcript.css .th-chat-msg--user is missing its neutral contrast wash");
-    }
+    expect(declarationValue(body, "background-image")).toBe("");
+    expect(declarationValue(body, "width")).toBe("fit-content");
+    expect(declarationValue(body, "margin-left")).toBe("auto");
+    expect(declarationValue(body, "font-style")).toBe("normal");
     if (declarationValue(body, "border") !== "0") {
       userViolations.push("chat-transcript.css .th-chat-msg--user must stay borderless (QA S4: border-style none)");
     }
     if (wholeVarToken(declarationValue(body, "border-radius")) !== "--th-radius-lg") {
       userViolations.push("chat-transcript.css .th-chat-msg--user is missing border-radius: var(--th-radius-lg)");
     }
-    if (wholeVarToken(declarationValue(body, "box-shadow")) !== "--th-shadow-raised") {
-      userViolations.push("chat-transcript.css .th-chat-msg--user is missing box-shadow: var(--th-shadow-raised)");
-    }
+    expect(declarationValue(body, "box-shadow")).toBe("none");
     if (declarationValue(body, "border-inline-start").toLowerCase().startsWith("3px")) {
       userViolations.push("chat-transcript.css .th-chat-msg--user must not grow an accent leading edge");
     }
@@ -878,8 +877,8 @@ describe("chat reading rhythm and tool width contracts", () => {
       .toMatch(/(?:^|\*\/|;)\s*border:\s*1px solid var\(--th-border-visible\)/);
     expect(declarationValue(ruleBody(login, ".th-login-card .th-input"), "border-color"))
       .toBe("var(--th-border-visible)");
+    expect(declarationValue(ruleBody(chatPane, '.th-model-picker-list > button[aria-selected="true"]'), "background")).toBe("var(--th-tool-record-border)");
     for (const [css, selector] of [
-      [chatPane, '.th-model-picker-list > button[aria-selected="true"]'],
       [chatPane, ".th-thinking-level--active"],
       [chatComposer, '.th-chat-slash > button[aria-selected="true"]'],
     ] as const) {

@@ -273,8 +273,9 @@ export function ModelPicker({ compact = false, models, currentModelKey, placehol
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => select(model)}
             >
-              <strong>{labelOf(model)}{keyOf(model) === currentModelKey && <IconCheck size={14} />}</strong>
+              <strong>{labelOf(model)}</strong>
               <span>{model.provider}</span>
+              {keyOf(model) === currentModelKey && <IconCheck className="th-model-picker-check" size={14} />}
             </button>
           );
         })}

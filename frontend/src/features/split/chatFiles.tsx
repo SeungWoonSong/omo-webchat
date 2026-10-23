@@ -54,7 +54,7 @@ export function splitFileAttachments(text: string): { text: string; paths: strin
   if (!lines.length || lines.some(line => !line.startsWith("- uploads/") || !workspaceFilePath(line.slice(2), "", false))) return { text, paths: [] };
   return { text: text.slice(0, at), paths: lines.map(line => line.slice(2)) };
 }
-export function UserFileMessage({ text }: { readonly text: string }) {
+export function UserFileMessage({ text, renderText }: { readonly text: string; readonly renderText?: (text: string) => ReactNode }) {
   const parsed = splitFileAttachments(text);
-  return <><span>{parsed.text}</span>{parsed.paths.length > 0 && <span className="th-chat-file-chips">{parsed.paths.map(path => <ChatFileLink key={path} path={path} />)}</span>}</>;
+  return <>{renderText ? renderText(parsed.text) : <span>{parsed.text}</span>}{parsed.paths.length > 0 && <span className="th-chat-file-chips">{parsed.paths.map(path => <ChatFileLink key={path} path={path} />)}</span>}</>;
 }

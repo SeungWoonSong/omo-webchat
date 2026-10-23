@@ -164,7 +164,10 @@ it("shows a localized error and supports retry when loading fails", async () => 
   vi.mocked(accounts.listAccountProviders).mockRejectedValueOnce(new Error("unavailable"));
   await render();
   expect(document.querySelector("[role=alert]")).not.toBeNull();
-  await act(async () => button("Refresh status").click());
+  const refresh = document.querySelector<HTMLButtonElement>('.th-accounts-title-row button[aria-label="Refresh status"]');
+  expect(refresh).not.toBeNull();
+  expect(refresh?.classList.contains("th-btn-icon")).toBe(true);
+  await act(async () => refresh!.click());
   expect(document.querySelector("[role=alert]")).toBeNull();
 });
 it("cancels a pending login setup and cancels its eventual engine flow", async () => {

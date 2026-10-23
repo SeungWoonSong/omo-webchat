@@ -69,18 +69,18 @@ describe("ChatTranscript authorship distinction", () => {
 		expect(container.querySelector(".th-chat-sr-author")).toBeNull();
 	});
 
-	it("separates the user bubble with a neutral wash, without accent bar or emphasized prose", () => {
+	it("uses a quiet fit-content user bubble without accent bar or emphasized prose", () => {
 		const css = readFileSync("src/styles/chat-transcript.css", "utf8");
 		const body = css.match(/\.th-chat-msg--user\s*\{([^}]*)\}/)?.[1] ?? "";
-		// Authorship is carried by the bubble's own elevated fill, right
+		// Authorship is carried by the bubble's own quiet fill, right
 		// alignment, and the accessible label — not by decoration.
 		expect(body).not.toContain("border-inline-start");
 		expect(body).not.toContain("font-weight");
 		expect(body).toContain("background: var(--th-surface-user)");
-		expect(body).toContain("background-image: linear-gradient(var(--th-border-user), var(--th-border-user))");
-		// The v2 Golo grammar makes the bubble a borderless pill: the shadow and
-		// the surface step separate it from the canvas (QA S4 probe: border-style
-		// none on every side, every corner at --th-radius-lg).
+		expect(body).not.toContain("background-image");
+		expect(body).toContain("width: fit-content");
+		expect(body).toContain("box-shadow: none");
+		// The quiet surface and right alignment separate the borderless bubble.
 		expect(body).toContain("border: 0");
 		expect(body).toContain("border-radius: var(--th-radius-lg)");
 		expect(body).not.toMatch(/border-(top|right|bottom|left|style|width)\s*:/);

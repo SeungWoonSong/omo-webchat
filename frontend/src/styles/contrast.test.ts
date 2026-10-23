@@ -532,21 +532,31 @@ describe("token contrast contracts (WCAG 2.1)", () => {
     expect(failures).toEqual([]);
   });
 
-  it("holds reading tiers on the actual composited user-bubble paint", () => {
+  it("holds reading tiers on the actual quiet user-bubble paint", () => {
     const css = readFileSync("src/styles/chat-transcript.css", "utf8");
     expect(css).toContain("background: var(--th-surface-user)");
-    expect(css).toContain("background-image: linear-gradient(var(--th-border-user), var(--th-border-user))");
+    expect(css).not.toContain("background-image: linear-gradient(var(--th-border-user), var(--th-border-user))");
     const failures: string[] = [];
     for (const scope of scopes) {
-      const surface = compositeOver(scopeColor(scope, "--th-surface-user"), scopeColor(scope, "--th-bg"));
-      const bubble = compositeOver(scopeColor(scope, "--th-border-user"), surface);
+      const bubble = compositeOver(scopeColor(scope, "--th-surface-user"), scopeColor(scope, "--th-bg"));
       for (const fg of TEXT_TIERS) {
         const ink = compositeOver(scopeColor(scope, fg), bubble);
         const ratio = contrastRatio(ink, bubble);
-        if (ratio < NORMAL_TEXT) failures.push(`[${scope.selector}] ${fg} on washed user bubble: ${ratio.toFixed(3)}:1`);
+        if (ratio < NORMAL_TEXT) failures.push(`[${scope.selector}] ${fg} on quiet user bubble: ${ratio.toFixed(3)}:1`);
       }
     }
     expect(failures).toEqual([]);
+  });
+
+  it("keeps the lighter selected model row distinct with AA name and provider text", () => {
+    const css = readFileSync("src/styles/chat-pane.css", "utf8");
+    expect(css).toContain('.th-model-picker-list > button[aria-selected="true"] > span {\n  color: var(--th-text-dim);');
+    for (const scope of scopes) {
+      for (const fg of ["--th-text", "--th-text-dim"]) expect(pairRatio(scope, fg, "--th-tool-record-border", "--th-surface-overlay")).toBeGreaterThanOrEqual(4.5);
+      const panel = scopeColor(scope, "--th-surface-overlay");
+      const selected = compositeOver(scopeColor(scope, "--th-tool-record-border"), panel);
+      expect(contrastRatio(selected, panel)).toBeGreaterThanOrEqual(1.3);
+    }
   });
 
   it("holds the actual input and composer placeholder paint to AA in both themes", () => {
@@ -767,7 +777,7 @@ describe("token contrast contracts (WCAG 2.1)", () => {
   it("measures the foreground and fill tokens requested by real error and disabled controls", () => {
     const componentPairs = [
       ["form-controls.css", ".th-btn--danger", "--th-error-fg", "--th-error"],
-      ["chat-composer.css", ".th-chat-input .th-btn--danger", "--th-error-fg", "--th-error"],
+      ["chat-composer.css", ".th-chat-input .th-btn--danger:focus-visible", "--th-error", "--th-error-bg"],
       ["form-controls.css", ".th-btn:disabled", "--th-disabled-fg", "--th-disabled-bg"],
       ["session-tree.css", ".th-tree-node--disabled", "--th-disabled-fg", "--th-disabled-bg"],
       ["session-tree.css", ".th-tree-more:disabled", "--th-disabled-fg", "--th-disabled-bg"],
@@ -786,7 +796,7 @@ describe("token contrast contracts (WCAG 2.1)", () => {
         continue;
       }
       for (const scope of scopes) {
-        const measured = pairRatio(scope, fg, bg);
+        const measured = pairRatio(scope, fg, bg, bg === "--th-error-bg" ? "--th-surface-composer" : undefined);
         if (measured < NORMAL_TEXT) failures.push(`[${scope.selector}] ${file} ${selector}: ${measured.toFixed(2)}:1 < 4.5:1`);
       }
     }

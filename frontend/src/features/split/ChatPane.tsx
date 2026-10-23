@@ -18,6 +18,7 @@ import { approvalRequestOf } from "./chatSessionState";
 import { questionKey } from "../../lib/chatWsParseApproval";
 import { ActivityShelf } from "./ActivityShelf";
 import { ChatComposer } from "./ChatComposer";
+import { ChatSessionEmpty } from "./ChatSessionEmpty";
 import { ExternalWriteBanner } from "./ExternalWriteBanner";
 import { SessionActiveBanner } from "./SessionActiveBanner";
 import { GoalBar } from "./GoalBar";
@@ -185,6 +186,7 @@ function ChatPaneContent({
 }: ChatPaneProps) {
   const { t } = useT();
   const [pane, setPane] = useState<HTMLElement | null>(null);
+  const [suggestion, setSuggestion] = useState<{ readonly text: string } | null>(null);
   const [narrow, setNarrow] = useState(() => window.innerWidth <= NARROW_PANE_MAX_WIDTH);
   useLayoutEffect(() => {
     if (!pane || typeof ResizeObserver === "undefined") return;
@@ -683,6 +685,7 @@ function ChatPaneContent({
         <ChatFilesContext.Provider value={{ root: chatSession.cwd, open: openFile }}>
         <ChatTranscript
           items={transcriptItems}
+          emptyState={<ChatSessionEmpty onSuggestion={text => setSuggestion({ text })} />}
           historyLoaded={chat.historyLoaded}
           streaming={chat.streaming}
           thinking={chat.thinking}
@@ -851,6 +854,7 @@ function ChatPaneContent({
         )}
         <ChatComposer
           session={chatSession}
+          suggestion={suggestion}
           commands={chat.commands}
           running={chat.running}
           blockingQuestion={chat.blockingQuestionPending}
