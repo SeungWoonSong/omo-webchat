@@ -90,11 +90,10 @@ describe("ChatComposer unified capsule controls", () => {
 			container.querySelector<HTMLButtonElement>(".th-chat-send-btn"),
 			"missing stop button",
 		);
-		const glyphs = Array.from(
-			stop.querySelectorAll("path"),
-			(path) => path.getAttribute("d"),
-		);
-		expect(glyphs).toEqual(["M18 6 6 18M6 6l12 12"]);
+		const square = stop.querySelector("svg rect");
+		expect(square?.getAttribute("width")).toBe("10");
+		expect(square?.getAttribute("height")).toBe("10");
+		expect(stop.type).toBe("button");
 		expect(stop.textContent).toBe("chat.stop");
 		expect(stop.className).toContain("th-btn--danger");
 	});

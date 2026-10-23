@@ -89,6 +89,7 @@ describe("ChatTranscript markdown rendering", () => {
 		});
 		const table = container.querySelector(".th-chat-markdown table");
 		expect(table).not.toBeNull();
+		expect(table?.parentElement?.classList.contains("th-chat-table-wrap")).toBe(true);
 		expect(table?.querySelectorAll("td").length).toBe(2);
 	});
 });

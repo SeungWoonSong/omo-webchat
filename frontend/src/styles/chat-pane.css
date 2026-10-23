@@ -525,9 +525,9 @@
   max-width: 100%;
   min-width: 0;
   overflow: hidden;
-  padding: var(--th-space-0-5) var(--th-space-2);
-  border: 0;
-  border-radius: var(--th-radius-pill);
+  padding: var(--th-space-1) var(--th-space-2);
+  border: 1px solid transparent;
+  border-radius: var(--th-radius-sm);
   background: transparent;
   color: var(--th-text-dim);
   font-size: var(--th-type-label-size);
@@ -539,7 +539,9 @@
   cursor: pointer;
 }
 
-.th-model-picker-btn:hover {
+.th-model-picker-btn:hover,
+.th-model-picker-btn:focus-visible {
+  border-color: var(--th-border);
   background: var(--th-hover);
   color: var(--th-text);
 }
@@ -610,13 +612,14 @@
 }
 
 .th-model-picker-list > button {
+  position: relative;
   display: flex;
   flex: none;
   flex-direction: column;
   align-items: flex-start;
   gap: var(--th-space-0-5);
   width: 100%;
-  padding: var(--th-space-2) var(--th-space-2);
+  padding: var(--th-space-2) var(--th-space-8) var(--th-space-2) var(--th-space-2);
   border: 0;
   border-radius: var(--th-radius-sm);
   background: transparent;
@@ -632,11 +635,21 @@
   background: var(--th-hover);
 }
 
-/* E18: the shared selected-row wash clears 1.3:1 against neighbouring
-   states; aria-selected persists through hover. The check stays at the text
-   tier so it remains legible on the wash. */
+/* A neutral selected wash clears 1.3:1 against the overlay. The provider
+   moves to text-dim on that wash to retain AA contrast in dark mode. */
 .th-model-picker-list > button[aria-selected="true"] {
-  background: var(--th-accent-select);
+  background: var(--th-tool-record-border);
+}
+
+.th-model-picker-list > button[aria-selected="true"] > span {
+  color: var(--th-text-dim);
+}
+
+.th-model-picker-check {
+  position: absolute;
+  right: var(--th-space-2);
+  top: 50%;
+  translate: 0 -50%;
 }
 
 .th-model-picker-list strong {
@@ -715,13 +728,21 @@
 
 .th-thinking-in-picker-levels {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
   gap: var(--th-space-0-5);
+  padding: var(--th-space-0-5);
+  background: var(--th-surface);
+  border-radius: var(--th-radius-sm);
 }
 
 .th-thinking-level {
+  flex: none;
+  white-space: nowrap;
   padding: var(--th-space-0-5) var(--th-space-1);
-  border: 1px solid var(--th-border);
+  border: 1px solid transparent;
   border-radius: var(--th-radius-sm);
   background: transparent;
   color: var(--th-muted);

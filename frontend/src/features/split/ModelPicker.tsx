@@ -128,6 +128,9 @@ export function ModelPicker({ compact = false, models, currentModelKey, placehol
         ?? Array.from(popoverRef.current?.querySelectorAll<HTMLButtonElement>(".th-thinking-level") ?? []).find(button => button.textContent === focus.slice(9))
         : popoverRef.current;
     target?.focus({ preventScroll: true });
+    const thinkingOption = target?.matches(".th-thinking-level") ? target
+      : popoverRef.current?.querySelector<HTMLElement>(".th-thinking-level--active");
+    thinkingOption?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
   }, [open, compact, panel, dense]);
 
   useLayoutEffect(() => {
@@ -219,6 +222,7 @@ export function ModelPicker({ compact = false, models, currentModelKey, placehol
             type="button"
             className={`th-thinking-level${level === thinkingLevel ? " th-thinking-level--active" : ""}`}
             aria-pressed={level === thinkingLevel}
+            onFocus={event => event.currentTarget.scrollIntoView?.({ block: "nearest", inline: "nearest" })}
             onMouseDown={compact ? undefined : (event) => event.preventDefault()}
             onClick={() => onThinkingChange(level)}
           >
@@ -273,8 +277,9 @@ export function ModelPicker({ compact = false, models, currentModelKey, placehol
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => select(model)}
             >
-              <strong>{labelOf(model)}{keyOf(model) === currentModelKey && <IconCheck size={14} />}</strong>
+              <strong>{labelOf(model)}</strong>
               <span>{model.provider}</span>
+              {keyOf(model) === currentModelKey && <IconCheck className="th-model-picker-check" size={14} />}
             </button>
           );
         })}

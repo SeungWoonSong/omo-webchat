@@ -338,16 +338,16 @@
   word-break: keep-all;
 }
 
-/* Authorship rides the dedicated user surface (pinned by styleContracts).
-   A neutral wash over that surface keeps the fill at least 1.3:1 from the
-   pane in either theme without adding an outline or changing the text tier.
-   Radius: --th-radius-lg on every corner (QA S4: border-style none). */
+/* Authorship uses a quiet fit-content surface, not a full-lane raised slab.
+   Text contrast is tested against the unwashed user token in both themes. */
 .th-chat-msg--user {
+  width: fit-content;
+  margin-left: auto;
+  font-style: normal;
   border: 0;
   border-radius: var(--th-radius-lg);
   background: var(--th-surface-user);
-  background-image: linear-gradient(var(--th-border-user), var(--th-border-user));
-  box-shadow: var(--th-shadow-raised);
+  box-shadow: none;
 }
 
 .th-chat-msg--assistant,
@@ -654,6 +654,14 @@
   padding-left: var(--th-space-6);
 }
 
+.th-chat-markdown ul { list-style-type: disc; }
+.th-chat-markdown ol { list-style-type: decimal; }
+.th-chat-markdown ul ul { list-style-type: circle; }
+.th-chat-markdown ul ul ul { list-style-type: square; }
+.th-chat-markdown li::marker { color: var(--th-muted); }
+.th-chat-markdown li > ul,
+.th-chat-markdown li > ol { margin-bottom: 0; }
+
 .th-chat-markdown li { margin: var(--th-space-1) 0; }
 
 .th-chat-markdown pre {
@@ -704,10 +712,14 @@
   border-top: 1px solid var(--th-border);
 }
 
-.th-chat-markdown table {
-  display: block;
+.th-chat-table-wrap {
+  width: 100%;
   max-width: 100%;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.th-chat-markdown table {
   margin: 0 0 var(--th-space-prose);
   border-collapse: collapse;
   width: 100%;
@@ -718,7 +730,7 @@
 
 .th-chat-markdown th,
 .th-chat-markdown td {
-  padding: var(--th-space-1) var(--th-space-2);
+  padding: var(--th-space-2) var(--th-space-3);
   border: 1px solid var(--th-border);
   text-align: left;
   vertical-align: top;
@@ -739,21 +751,22 @@
 
 .th-chat-msg--steer {
   display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
   gap: var(--th-space-1);
-  align-items: baseline;
-  padding: var(--th-space-1) var(--th-space-2);
-  border-left: 2px solid var(--th-border);
-  color: var(--th-muted);
-  /* Steer rows nest inside the emphasized user bubble; keep their resolved
-     weight at read so the annotation stays as quiet as before. */
+  padding: 0;
+  color: var(--th-text);
   font-weight: var(--th-weight-read);
-  font-size: var(--th-type-secondary-size);
-  line-height: var(--th-type-secondary-line);
-  letter-spacing: var(--th-type-secondary-tracking);
-  font-style: italic;
+  font-size: var(--th-type-prose-size);
+  line-height: var(--th-type-prose-line);
+  letter-spacing: var(--th-type-prose-tracking);
+  font-style: normal;
 }
 
 .th-chat-steer-mark {
+  color: var(--th-muted);
+  font-size: var(--th-type-micro-size);
   flex: none;
   font-weight: var(--th-weight-emphasize);
 }
@@ -813,3 +826,18 @@
   font-family: var(--th-font-mono);
   color: var(--th-text-dim);
 }
+
+/* A new session offers draft starters, never an implicit submission. */
+.th-chat-content:has(> .th-chat-session-empty) { min-height: 100%; display: flex; flex-direction: column; }
+.th-chat-session-empty {
+  width: min(560px, calc(100% - var(--th-chat-gutter) - var(--th-chat-gutter)));
+  margin: auto;
+  padding: var(--th-space-6) 0;
+  text-align: center;
+}
+.th-chat-session-empty > img { margin: 0 auto var(--th-space-4); }
+.th-chat-session-empty h2 { margin: 0 0 var(--th-space-5); font-size: var(--th-type-heading2-size); font-weight: var(--th-weight-announce); color: var(--th-text); }
+.th-chat-session-empty p { margin: var(--th-space-4) 0 0; font-size: var(--th-type-micro-size); color: var(--th-muted); }
+.th-chat-suggestions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--th-space-2); }
+.th-chat-suggestions button { min-height: 44px; padding: var(--th-space-2) var(--th-space-3); border: 1px solid var(--th-border); border-radius: var(--th-radius-pill); background: var(--th-surface); color: var(--th-text-dim); font-size: var(--th-type-secondary-size); }
+.th-chat-suggestions button:hover { background: var(--th-hover); color: var(--th-text); }

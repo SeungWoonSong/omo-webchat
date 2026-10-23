@@ -59,11 +59,13 @@ export function AccountsPanel({ onClose }: { readonly onClose: () => void }) {
   return <>
     <ModalDialog open onClose={onClose} labelledBy="accounts-title" closeLabel={t("accounts.close")}>
       <div className="th-accounts">
-        <h2 id="accounts-title">{t("accounts.title")}</h2>
+        <div className="th-accounts-title-row">
+          <h2 id="accounts-title">{t("accounts.title")}</h2>
+          <button className="th-btn-icon th-accounts-refresh" title={t("accounts.refresh")} aria-label={t("accounts.refresh")} disabled={loading || busy} onClick={() => void refresh()}>↻</button>
+        </div>
         <div className="th-accounts-body">
         <header className="th-accounts-header">
           <p className="th-accounts-hint">{t("accounts.description")}</p>
-          <button className="th-btn th-btn--ghost" disabled={loading || busy} onClick={() => void refresh()}>{t("accounts.refresh")}</button>
         </header>
         <div className="th-accounts-feedback" aria-live="polite">
           {loading && <p role="status">{t("accounts.loading")}</p>}

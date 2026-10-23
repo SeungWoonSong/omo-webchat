@@ -765,6 +765,11 @@ The column is the fixed Surface shell in Geometry. Its chrome:
   narrow layouts alike. The row keeps its position across pane resizes; the
   selector does not move with header metadata and does not reflow as the
   transcript changes.
+- The selector uses a ghost trigger (no resting outline or pill), with a
+  hairline only on hover/focus. The row remains above the capsule to preserve
+  its popup bounds and keyboard exit contract. Thinking levels share one
+  horizontally scrolling segmented row; selected models use a neutral wash
+  and a check at the option's trailing edge with reserved name spacing.
 - The control row, composer capsule, and transcript rows all resolve to one
   reading-column lane: containers outside the scrollport use
   `min(var(--th-chat-max), 100% - 2 * var(--th-chat-gutter))`, transcript rows
@@ -817,6 +822,19 @@ The column is the fixed Surface shell in Geometry. Its chrome:
   contracts are unchanged by the move; the control renders the exact active
   model identity in both placements.
 
+## UI controls and new-session guidance
+
+- Settings controls share a 32px height (44px on narrow/coarse-pointer
+  layouts), square size-step buttons, and the menu action's inline inset.
+  Section captions use muted Micro text (13px at the default setting).
+- Accounts dialogs size to content, capped at 80% of the usable viewport;
+  their body owns vertical scroll and refresh is a ghost icon beside the title.
+- An opened session with loaded empty history shows a small penguin, localized
+  greeting, four draft-starter chips, and an attachment hint centered in the
+  transcript. A chip fills and focuses the composer without sending. Any
+  message or active output removes the guidance; errors/loading keep their
+  existing feedback instead.
+
 ## Conversation anatomy
 
 - Conversation rows come only from canonical RPC/history messages. Original
@@ -837,8 +855,11 @@ The column is the fixed Surface shell in Geometry. Its chrome:
 - Failed originals follow their logical workspace/chat while panes move or
   remount. Recovery restores text, image, and command identity without sending.
 
-- User messages align right in a restrained neutral bubble, maximum 80% of the
-  reading column.
+- User messages align right in a fit-content neutral bubble, maximum 80% of the
+  reading column. The unwashed `--th-surface-user` fill has no raised shadow.
+  Steers show a muted Micro label above upright normal text. Both user and
+  assistant Markdown restore disc/decimal markers with a 24px list indent;
+  tables fill the prose column with horizontal overflow owned by their wrapper.
 - Assistant prose aligns left directly on the canvas, with no bubble border or
   fill.
 - Finalized and streaming assistant content occupy the same x-axis and width.
@@ -1030,7 +1051,7 @@ dashed or coloured border.
 - One subsequent submit produces exactly one outbound request.
 - Send and Stop occupy the same stable control slot to prevent layout shift.
 - The slot is a fixed circular icon-only control (36px on wide panes, 44px on
-  narrow ones): the up-arrow glyph sends, the X glyph stops, and only the glyph
+  narrow ones): the up-arrow glyph sends, the square glyph stops, and only the glyph
   swaps — the circle's geometry never changes between states. The visible label
   is screen-reader-only; the accessible name always matches the action.
 - While a run is in flight, a steer control of the same geometry and send fill
@@ -1042,7 +1063,8 @@ dashed or coloured border.
 - Send's fill is the accent family through `--th-send` (resolved to
   `--th-accent-solid`), with the glyph in `--th-send-fg` (white on the solid
   fill, 4.5:1); `--th-send-hover` resolves to `--th-accent-solid-hover`.
-  Stop keeps `--th-error`, and disabled semantics are unchanged. Composer CSS
+  Stop is a neutral outlined ghost at rest and uses `--th-error` on
+  `--th-error-bg` only on hover/focus; disabled semantics are unchanged. Composer CSS
   never hardcodes the fill, it exists only as tokens.
 - Attachments open through the icon-only plus action at the capsule's leading
   edge. A pending image renders as a thumbnail chip in its own row above the

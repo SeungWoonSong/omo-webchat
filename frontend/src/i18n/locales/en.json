@@ -1,4 +1,11 @@
 {
+  "chat.steerLabel": "Additional guidance",
+  "chat.empty.heading": "How can I help you?",
+  "chat.empty.organize": "Organize the files in this folder",
+  "chat.empty.draft": "Write a first draft of a report",
+  "chat.empty.summarize": "Summarize the attached document",
+  "chat.empty.table": "Arrange this in a table",
+  "chat.empty.hint": "Drop files here or attach them with +",
   "settings.collapseSystemNotices": "Collapse system notices",
   "notice.systemTitle": "System notice",
   "notice.modelProfileTitle": "Model profile",

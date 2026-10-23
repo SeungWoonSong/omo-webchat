@@ -124,6 +124,7 @@ describe("bounded desktop ModelPicker", () => {
   it("scrolls only the desktop list to reveal the active option, never chrome or a hidden ancestor", () => {
     const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView");
     const { popup } = render();
+    scrollIntoView.mockClear();
     const list = required(popup.querySelector<HTMLElement>(".th-model-picker-list"));
     const options = popup.querySelectorAll<HTMLElement>('[role="option"]');
     Object.defineProperty(list, "getBoundingClientRect", { configurable: true, value: () => new DOMRect(0, 100, 260, 120) });
@@ -148,6 +149,23 @@ describe("bounded desktop ModelPicker", () => {
     expect(popup.querySelector("input")?.getAttribute("aria-activedescendant")).toBe(last.id);
     expect(list.scrollTop).toBe(1576); expect(popup.scrollTop).toBe(0);
     expect(document.activeElement).toBe(high); expect(selected).not.toHaveBeenCalled(); expect(changed).not.toHaveBeenCalled();
+  });
+  it("reveals the selected thinking option on open and each keyboard-focused option without native focus scroll", () => {
+    const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView");
+    const focus = vi.spyOn(HTMLElement.prototype, "focus");
+    const { popup } = render();
+    const chips = [...popup.querySelectorAll<HTMLButtonElement>(".th-thinking-level")];
+    const selectedCall = scrollIntoView.mock.contexts.indexOf(chips[2]!);
+    expect(selectedCall).toBeGreaterThanOrEqual(0);
+    expect(scrollIntoView.mock.calls[selectedCall]).toEqual([{ block: "nearest", inline: "nearest" }]);
+    scrollIntoView.mockClear();
+    for (const chip of chips) {
+      act(() => key("Tab"));
+      expect(document.activeElement).toBe(chip);
+      expect(focus).toHaveBeenLastCalledWith({ preventScroll: true });
+      expect(scrollIntoView.mock.contexts.at(-1)).toBe(chip);
+      expect(scrollIntoView).toHaveBeenLastCalledWith({ block: "nearest", inline: "nearest" });
+    }
   });
   it("opens with non-text focus, follows reasoning/search Tab order in both directions, then exits", () => {
     const { popup, trigger } = render();

@@ -263,6 +263,8 @@ function RefImage({ source, toolCallId, contentIndex, mimeType, byteLength, onZo
 interface ChatTranscriptProps {
   /** Unified render list: conversation entries merged with notice blocks. */
   readonly items: readonly TranscriptItem[];
+  readonly emptyState?: ReactNode;
+  readonly runActive?: boolean;
   /** Workspace/chat identity for lazy image_ref media fetches. */
   readonly mediaSource?: ChatMediaSource | undefined;
   readonly streaming: string;
@@ -289,6 +291,8 @@ export type OlderHistoryViewState = "idle" | "loading" | "error" | "complete" | 
 
 export function ChatTranscript({
   items,
+  emptyState,
+  runActive = false,
   streaming,
   thinking,
   toolCalls,
@@ -618,7 +622,7 @@ export function ChatTranscript({
           <Markdown text={block.text ?? ""} />
         </div>
       ) : (
-        <UserFileMessage key={blockKey(block)} text={block.text ?? ""} />
+        <UserFileMessage key={blockKey(block)} text={block.text ?? ""} renderText={text => <div className="th-chat-markdown"><Markdown text={text} /></div>} />
       );
     });
   };
@@ -1386,6 +1390,7 @@ export function ChatTranscript({
               )}
             </div>
           )}
+          {historyLoaded && items.length === 0 && !runActive && !streaming && !thinking && Object.keys(toolCalls).length === 0 && !error && !historyFailedEmpty && emptyState}
           {!historyLoaded && rows.length === 0 && !streaming && Object.keys(toolCalls).length === 0 && !error && !doneReason && (
             <div className="th-chat-loading" role="status">{t("chat.loading")}</div>
           )}
@@ -1445,8 +1450,8 @@ export function ChatTranscript({
                   >
                     {message.customType === "steer" ? (
                       <div className="th-chat-msg th-chat-msg--steer" role="note">
-                        <span className="th-chat-steer-mark">{t("chat.steer")}</span>
-                        <span className="th-chat-steer-text"><UserFileMessage text={rowText(message)} /></span>
+                        <span className="th-chat-steer-mark">{t("chat.steerLabel")}</span>
+                        <div className="th-chat-steer-text"><UserFileMessage text={rowText(message)} renderText={text => <div className="th-chat-markdown"><Markdown text={text} /></div>} /></div>
                       </div>
                     ) : message.summaryKind !== undefined ? (
                       // Hydrated summary entries render as summary boxes in

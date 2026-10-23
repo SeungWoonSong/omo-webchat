@@ -2,6 +2,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { I18nContext } from "../../i18n";
+import { ApiError } from "../../lib/api";
 import { uploadFiles } from "../terminal/terminal";
 import { ChatComposer } from "./ChatComposer";
 import { i18n, chatSession } from "./chatPaneTestHarness";
@@ -50,4 +51,35 @@ it("retains failed chip, retries and removes without deleting", async () => {
   expect(uploadFiles).toHaveBeenCalledTimes(2);
   act(() => container.querySelector<HTMLButtonElement>('.th-chat-file-chip .th-btn-icon')!.click());
   expect(container.querySelector(".th-chat-file-chip")).toBeNull();
+});
+
+it("keeps the upload limit out of idle content but describes the attach button", () => {
+  expect(container.textContent).not.toContain("chat.uploadLimit");
+  const attach = container.querySelector(".th-chat-attach-btn")!;
+  expect(attach.getAttribute("title")).toContain("chat.uploadLimit");
+  expect(attach.getAttribute("aria-description")).toBe("chat.uploadLimit");
+});
+it("shows the limit only inside the drop hint during dragover and clears it on leave", () => {
+  const form = container.querySelector("form")!;
+  const dragover = new Event("dragover", { bubbles: true, cancelable: true });
+  Object.defineProperty(dragover, "dataTransfer", { value: { types: ["Files"], files: [] } });
+  act(() => form.dispatchEvent(dragover));
+  expect(container.querySelector(".th-chat-drop-hint")?.textContent).toContain("chat.uploadLimit");
+  act(() => form.dispatchEvent(new Event("dragleave", { bubbles: true })));
+  expect(container.textContent).not.toContain("chat.uploadLimit");
+});
+it("does not show the drop hint when dragging text without files", () => {
+  const form = container.querySelector("form")!;
+  const dragover = new Event("dragover", { bubbles: true, cancelable: true });
+  Object.defineProperty(dragover, "dataTransfer", { value: { types: ["text/plain"], files: [] } });
+  act(() => form.dispatchEvent(dragover));
+  expect(container.querySelector(".th-chat-drop-hint")).toBeNull();
+  expect(container.textContent).not.toContain("chat.uploadLimit");
+});
+it("shows the localized limit on a 413 upload error and clears it when removed", async () => {
+  vi.mocked(uploadFiles).mockRejectedValueOnce(new ApiError(413, "Request Entity Too Large"));
+  await act(async () => pick(new File(["pdf"], "large.pdf"), "picker"));
+  expect(container.querySelector("[role=alert]")?.textContent).toBe("chat.uploadLimit");
+  act(() => container.querySelector<HTMLButtonElement>(".th-chat-file-chip .th-btn-icon")!.click());
+  expect(container.textContent).not.toContain("chat.uploadLimit");
 });
