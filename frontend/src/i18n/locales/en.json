@@ -105,6 +105,8 @@
   "sidebar.tm.copy": "Copy attach command",
   "sidebar.tm.liveProcess": "Provider process running",
   "sidebar.tm.runningAgents": "{n} running",
+  "sidebar.tm.moreActions": "Conversation actions",
+  "sidebar.tm.openInPane": "Open in a pane",
   "sidebar.tm.mainRunning": "Main running",
   "sidebar.sessions": "Sessions",
   "sidebar.tm.opening": "Opening…",

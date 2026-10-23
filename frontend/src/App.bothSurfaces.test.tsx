@@ -181,6 +181,8 @@ describe("App + Sidebar both-surfaces live ordering", () => {
   });
 
   it("excludes a crawl-only session from both surfaces while the crawl still learns its recency and arms the cadence", async () => {
+    // Assert the visible tree inventory, not hidden children of a closed workspace.
+    window.localStorage.setItem("th-ws-expanded", JSON.stringify(["ws-1"]));
     await act(async () => {
       root.render(<App />);
     });
@@ -193,12 +195,13 @@ describe("App + Sidebar both-surfaces live ordering", () => {
     // and attribute ws-1 as its owner.
     expect(container.querySelector(".th-sidebar-body .th-tree")).not.toBeNull();
     expect(treeRowNames()).toEqual(["A visible"]);
-    expect(container.querySelector(".th-sidebar-live")).not.toBeNull();
+    expect(container.querySelector(".th-sidebar-live")).toBeNull();
+    expect(container.querySelector(".th-tree")).not.toBeNull();
     expect(container.querySelector(".th-home-live")).not.toBeNull();
     expect(catalogCalls()).toContain("/api/workspaces/ws-1/sessions?limit=5&cursor=p2");
 
     // Only the openable session renders a card on either surface.
-    expect(cardNames(".th-sidebar-live")).toEqual(["A visible"]);
+    expect(treeRowNames()).toEqual(["A visible"]);
     expect(cardNames(".th-home-live")).toEqual(["A visible"]);
 
     // Production scheduling path: the catalog scheduler owns the single 15s
@@ -234,7 +237,7 @@ describe("App + Sidebar both-surfaces live ordering", () => {
     await act(async () => {});
 
     expect(treeRowNames()).toEqual(["A visible"]);
-    expect(cardNames(".th-sidebar-live")).toEqual(["A visible"]);
+    expect(treeRowNames()).toEqual(["A visible"]);
     expect(cardNames(".th-home-live")).toEqual(["A visible"]);
   });
 
@@ -263,7 +266,8 @@ describe("App + Sidebar both-surfaces live ordering", () => {
 
     // Both owners' first pages are ready; ws-1 is the sole initial owner.
     expect(container.querySelector(".th-sidebar-body .th-tree")).not.toBeNull();
-    expect(container.querySelector(".th-sidebar-live")).not.toBeNull();
+    expect(container.querySelector(".th-sidebar-live")).toBeNull();
+    expect(container.querySelector(".th-tree")).not.toBeNull();
     const baseline = scheduledFirstPageCalls("ws-1");
     expect(baseline).toBe(1);
 
@@ -314,7 +318,8 @@ describe("App + Sidebar both-surfaces live ordering", () => {
     await act(async () => {});
 
     // ws-1 is a live owner, so the 15s recency cadence is armed.
-    expect(container.querySelector(".th-sidebar-live")).not.toBeNull();
+    expect(container.querySelector(".th-sidebar-live")).toBeNull();
+    expect(container.querySelector(".th-tree")).not.toBeNull();
     const logoutButton = container.querySelector<HTMLButtonElement>('.th-sidebar-footer button[title="Log out"]');
     expect(logoutButton).not.toBeNull();
 

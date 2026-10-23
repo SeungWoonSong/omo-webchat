@@ -2,10 +2,11 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { LiveSessionList } from "./LiveSessionList";
 import { Sidebar } from "../../components/Sidebar";
 import { useLiveSessionInfos } from "./useLiveSessions";
-import { __resetLiveBadgeStoreForTests } from "./liveBadgeStore";
-import { summarizeLiveSession } from "./useLiveSessionSummaries";
+import { __resetLiveBadgeStoreForTests, useMergedLiveSummaries } from "./liveBadgeStore";
+import { summarizeLiveSession, useLiveSessionSummaries } from "./useLiveSessionSummaries";
 import { parseDagDigest, parseTaskDigest } from "./activityDigest";
 import type { Workspace } from "./workspace";
 import type { LiveSessionInfo } from "./useLiveSessionsLean";
@@ -31,6 +32,12 @@ const partial = { runs: [{ ...fullRun, nodes: [nodeA], edges: [] }], partial: tr
 const incompleteZero = { runs: [{ ...fullRun, nodes: [], counts: { ...counts, total: 0, running: 0 }, edges: [] }], partial: true };
 const malformedNode = { runs: [{ ...fullRun, nodes: [nodeA, { id: "b", prompt: "Lost", state: "running" }] }] };
 const workspace: Workspace = { id: "ws", name: "Workspace", path: "/fixture", chats: [{ id: "s1", name: "Session", provider: "omo" }] };
+
+function QualificationOverview() {
+  const summaries = useMergedLiveSummaries(useLiveSessionSummaries(true));
+  return <div className="th-home-live"><LiveSessionList summaries={summaries} workspaces={[workspace]}
+    sessionLists={new Map()} onSelect={() => undefined} onOpen={async () => undefined} /></div>;
+}
 
 function info(dag: unknown, task: unknown = null): LiveSessionInfo {
   return { id: "s1", title: "Session", task, dag };
@@ -241,14 +248,14 @@ describe("Sidebar and overview consume real DAG summary qualification", () => {
   function render(dag: unknown, overrides: Partial<LiveSessionInfo> = {}): void {
     vi.mocked(useLiveSessionInfos).mockReturnValue([{ ...info(dag), ...overrides }]);
     act(() => root.render(
-      <Sidebar collapsed={false} onToggleCollapse={() => undefined} workspaces={[workspace]}
+      <><Sidebar collapsed={false} onToggleCollapse={() => undefined} workspaces={[workspace]}
         activeTerminalId={null} placedSessions={new Set()} liveSessions={new Set(["s1"])} expanded={new Set(["ws"])}
         sessionLists={new Map([["ws", [{ id: "s1", name: "Session", source: "stored", recencyMs: 1 }]]])}
         sessionPages={new Map()} onToggleExpanded={() => undefined} onLoadMoreSessions={() => undefined}
         onSelectTerminal={() => undefined} onOpenSession={async () => undefined} onAddWorkspace={() => undefined}
         onAddTerminal={() => undefined} onDeleteWorkspace={() => undefined} onDeleteTerminal={() => undefined}
         onRenameWorkspace={async () => undefined} onRenameTerminal={async () => undefined} onLogout={() => undefined} notify={() => undefined}
-      />,
+      /><QualificationOverview /></>,
     ));
   }
 
@@ -257,7 +264,7 @@ describe("Sidebar and overview consume real DAG summary qualification", () => {
     const badges = () => [
       container.querySelector(".th-tree-children .th-tree-running"),
       container.querySelector(".th-tree-running--workspace"),
-      container.querySelector(".th-sidebar-live .th-overview-card-running"),
+      container.querySelector(".th-home-live .th-overview-card-running"),
     ];
     expect(badges()).toEqual([null, null, null]);
 
@@ -275,7 +282,7 @@ describe("Sidebar and overview consume real DAG summary qualification", () => {
     const badges = () => [
       container.querySelector(".th-tree-children .th-tree-running"),
       container.querySelector(".th-tree-running--workspace"),
-      container.querySelector(".th-sidebar-live .th-overview-card-running"),
+      container.querySelector(".th-home-live .th-overview-card-running"),
     ];
     expect(badges()).toEqual([null, null, null]);
     render(emptyTaskIds, { dagOversized: false, dagDigest });
@@ -293,7 +300,7 @@ describe("Sidebar and overview consume real DAG summary qualification", () => {
     const badges = () => [
       container.querySelector(".th-tree-children .th-tree-running"),
       container.querySelector(".th-tree-running--workspace"),
-      container.querySelector(".th-sidebar-live .th-overview-card-running"),
+      container.querySelector(".th-home-live .th-overview-card-running"),
     ];
     expect(badges()).toEqual([null, null, null]);
   });
@@ -306,7 +313,7 @@ describe("Sidebar and overview consume real DAG summary qualification", () => {
     const badges = () => [
       container.querySelector(".th-tree-children .th-tree-running"),
       container.querySelector(".th-tree-running--workspace"),
-      container.querySelector(".th-sidebar-live .th-overview-card-running"),
+      container.querySelector(".th-home-live .th-overview-card-running"),
     ];
     expect(badges().map((badge) => badge?.textContent)).toEqual(["50", "50", "50"]);
     expect(badges().map((badge) => badge?.getAttribute("aria-label"))).toEqual([
@@ -323,7 +330,7 @@ describe("Sidebar and overview consume real DAG summary qualification", () => {
     render(dag);
     const row = () => container.querySelector(".th-tree-children .th-tree-running");
     const aggregate = () => container.querySelector(".th-tree-running--workspace");
-    const overview = () => container.querySelector(".th-sidebar-live .th-overview-card-running");
+    const overview = () => container.querySelector(".th-home-live .th-overview-card-running");
     expect.soft(row()?.textContent ?? null).toBe(expected);
     expect.soft(aggregate()?.textContent ?? null).toBe(expected);
     expect.soft(overview()?.textContent ?? null).toBe(expected);

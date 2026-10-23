@@ -39,6 +39,8 @@ describe("rendered lean recency on Sidebar and home", () => {
     vi.stubGlobal("matchMedia", (media: string) => ({ matches: false, media,
       addEventListener: () => undefined, removeEventListener: () => undefined }));
     window.localStorage.clear();
+    // Row ordering is visible only when the workspace is expanded.
+    window.localStorage.setItem("th-ws-expanded", JSON.stringify(["ws"]));
     rows = [older, newer];
     catalog = [];
     vi.mocked(connectChat).mockImplementation(h => {
@@ -69,8 +71,8 @@ describe("rendered lean recency on Sidebar and home", () => {
     window.localStorage.clear();
   });
   function expectBoth(titles: readonly string[]): void {
-    for (const surface of [".th-sidebar-live", ".th-home-live"]) {
-      expect([...container.querySelectorAll(`${surface} .th-overview-card-name`)]
+    for (const surface of [".th-tree", ".th-home-live"]) {
+      expect([...container.querySelectorAll(surface === ".th-tree" ? ".th-tree-children .th-tree-label" : `${surface} .th-overview-card-name`)]
         .map(node => node.textContent)).toEqual(titles);
     }
   }
@@ -122,8 +124,8 @@ describe("rendered lean recency on Sidebar and home", () => {
     // When both surfaces render the complete feed.
     await act(async () => root.render(<App />));
     // Then each receipt pair uses title order without discarding recency between pairs.
-    for (const surface of [".th-sidebar-live", ".th-home-live"]) {
-      expect([...container.querySelectorAll(`${surface} .th-overview-card-name`)]
+    for (const surface of [".th-tree", ".th-home-live"]) {
+      expect([...container.querySelectorAll(surface === ".th-tree" ? ".th-tree-children .th-tree-label" : `${surface} .th-overview-card-name`)]
         .map(node => node.textContent)).toEqual(expected);
     }
   });

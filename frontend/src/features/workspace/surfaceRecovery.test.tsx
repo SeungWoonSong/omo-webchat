@@ -174,7 +174,7 @@ describe("C002 surface recovery", () => {
 
   const liveCards = (): HTMLElement[] =>
     Array.from(
-      container.querySelector(".th-sidebar-live")?.querySelectorAll<HTMLElement>(".th-overview-card") ?? [],
+      container.querySelector(".th-tree-children")?.querySelectorAll<HTMLElement>(".th-tree-node") ?? [],
     );
 
   describe("empty state", () => {
@@ -222,14 +222,21 @@ describe("C002 surface recovery", () => {
       expect(document.body.querySelectorAll(".th-overview-card")).toHaveLength(0);
       expect(sessionBadges()).toHaveLength(0);
 
-      // Next 4s poll succeeds: the pinned card and tree badge appear from the poll alone.
+      // The stored row already exists; only the live marker proves recovery.
+      const storedRow = container.querySelector('[data-session-id="tm-1"]');
+      expect(storedRow).not.toBeNull();
+      expect(storedRow?.querySelector(".th-tree-live")).toBeNull();
+
+      // Next 4s poll succeeds: live presence and running badge recover together.
       await act(async () => {
         await vi.advanceTimersByTimeAsync(4000);
       });
       await settle();
-      const cards = container.querySelector(".th-sidebar-live")?.querySelectorAll<HTMLElement>(".th-overview-card");
+      const cards = container.querySelector(".th-tree-children")?.querySelectorAll<HTMLElement>(".th-tree-node");
       expect(cards).toHaveLength(1);
-      expect(cards?.[0]?.textContent).toContain("Enriched One");
+      expect(cards?.[0]?.textContent).toContain(SESSION_ROW.name);
+      expect(cards?.[0]?.querySelector(".th-tree-live")).not.toBeNull();
+      expect(cards?.[0]?.querySelector(".th-tree-running")?.textContent).toBe("1");
       expect(sessionBadges().map((badge) => badge.textContent)).toEqual(["1"]);
     });
 
@@ -261,7 +268,7 @@ describe("C002 surface recovery", () => {
       await settle();
       expect(sessionBadges().map((badge) => badge.textContent)).toEqual(["2"]);
       expect(
-        container.querySelector(".th-sidebar-live .th-overview-card-running")?.textContent,
+        container.querySelector(".th-tree-children .th-tree-running")?.textContent,
       ).toBe("2");
     });
   });

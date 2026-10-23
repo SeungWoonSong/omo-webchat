@@ -1200,3 +1200,24 @@ describe("token contrast contracts (WCAG 2.1)", () => {
     expect(failures).toEqual([]);
   });
 });
+
+
+describe("sidebar unified row text contrast", () => {
+  const scopes = parseThemeScopes(readFileSync("src/styles/tokens.css", "utf8"));
+  for (const scope of scopes) {
+    it(`${scope.selector} keeps captions, labels and retry text legible on every row state`, () => {
+      for (const surface of ["--th-surface", "--th-surface-overlay", "--th-hover", "--th-active"]) {
+        const badge = compositeOver(scopeColor(scope, "--th-accent-bg"), scopeColor(scope, surface));
+        expect(
+          contrastRatio(scopeColor(scope, "--th-tree-running-ink"), badge),
+          `running ink/tint over ${surface}`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+      for (const ink of ["--th-text", "--th-text-dim", "--th-muted", "--th-faint"]) {
+        for (const surface of ["--th-surface", "--th-surface-overlay", "--th-hover", "--th-active"]) {
+          expect(pairRatio(scope, ink, surface), `${ink}/${surface}`).toBeGreaterThanOrEqual(4.5);
+        }
+      }
+    });
+  }
+});

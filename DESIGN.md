@@ -699,21 +699,18 @@ The column is the fixed Surface shell in Geometry. Its chrome:
   `--th-accent-bg`, with neutral borders if needed. Counts are Micro pills
   in the sans stack, not mono. Reduced motion keeps the static glyph and
   accessible running name; main-session work needs no child-agent count.
-- Pinned live cards and home-live cards are raised surfaces. Their running
-  pill uses the same `--th-accent-ink` text on `--th-accent-bg` and cadence
-  as the tree and transcript. The name row's ink is vertically
-  centred in the card's own border box within 1px, not merely centred inside
-  its activation button, at every pointer, width and theme.
-  The last-output preview alone uses mono, because it is output.
-- Open-sessions heading text, live-card title text, and the parent tree-label
-  column share a left edge; all right-hand count badges share a right edge,
-  within 1px with one or three cards on fine and coarse pointers. The running
-  total beside the open-sessions heading is a violet running pill with a
-  spinner plus the number, matching the card chips and the workspace count
-  pill. Workspace
-  rename/add/delete actions appear inline on fine pointers when hovered,
-  focused or selected. On coarse pointers only the `⋮` menu exposes those
-  actions, each with a 44px target.
+- The sidebar has one workspace tree, not a second pinned live-card list.
+  Openable live chats missing from the paged catalog appear once under their
+  owning workspace. Catalog-only rows retain opening, failure and retry feedback.
+  Unresolvable engine identities remain excluded, as before. Placement is an
+  accessible neutral dot; connection and main/child running work stay distinct.
+  There are no pane-specific actions in this inventory; pane controls remain
+  in the pane. Home-live cards retain their raised surfaces and output preview.
+- Sidebar headings, actions, workspace rows and footer share one inline inset.
+  Icons use one fixed slot and session rows indent by one step. Selection uses
+  the tree's single sliding wash and emphasized label; hover is quieter.
+  Workspace rename/add/delete actions remain inline on fine pointers and in
+  the 44px-target overflow disclosure on coarse pointers.
 - A workspace name renders as one continuous run: when the full name fits,
   its spans sit flush so the name reads as a single word with no gap or
   kerning break mid-word. Only when truncation is unavoidable does the

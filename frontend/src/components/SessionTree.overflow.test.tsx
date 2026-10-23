@@ -368,4 +368,22 @@ describe("SessionTree workspace overflow disclosure", () => {
     expect(document.activeElement).toBe(composer);
     expect(document.activeElement).not.toBe(document.body);
   });
+  it("keeps conversation rename/delete keyboard-reachable in the compact touch disclosure", () => {
+    const trigger = triggerOf("ws-1-tm-alpha");
+    act(() => { trigger.focus(); activate(trigger, "Enter"); });
+    const popup = popupOf("ws-1-tm-alpha")!;
+    expect(popup.getAttribute("role")).toBe("group");
+    expect(actionButtons(popup).map(button => button.title)).toEqual(["sidebar.tm.rename", "sidebar.tm.delete"]);
+    act(() => actionButtons(popup)[1]?.focus());
+    act(() => pressKey(document.activeElement!, "Escape"));
+    expect(popups()).toHaveLength(0);
+    expect(document.activeElement).toBe(trigger);
+    act(() => activate(trigger, " "));
+    act(() => actionButtons(popupOf("ws-1-tm-alpha")!)[0]?.click());
+    const input = container.querySelector<HTMLInputElement>(".th-tree-rename")!;
+    expect(document.activeElement).toBe(input);
+    act(() => pressKey(input, "Escape"));
+    expect(document.activeElement).toBe(trigger);
+  });
+
 });
