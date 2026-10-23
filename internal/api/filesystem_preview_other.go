@@ -4,6 +4,10 @@ package api
 
 import "os"
 
+func openPreviewSource(root, rel string) (*os.File, error) {
+	return os.OpenInRoot(root, rel)
+}
+
 // Persistent caching requires Unix ownership and no-follow checks.
 func preparePreviewCache(string) bool { return false }
 

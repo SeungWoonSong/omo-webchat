@@ -22,6 +22,8 @@ import (
 	"github.com/DevNewbie1826/omo-webchat/internal/procexec"
 )
 
+var errPreviewNotRegular = errors.New("not a regular file")
+
 const maxPreviewInput int64 = 50 << 20
 const maxPreviewCache int64 = 500 << 20
 const pdfCSP = "script-src 'none'; connect-src 'none'; base-uri 'none'; form-action 'none'"
@@ -79,7 +81,7 @@ func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Metadata does not retain an input descriptor while waiting for the lane.
-	info, err := os.Stat(target)
+	info, err := os.Lstat(target)
 	if err != nil {
 		s.writeFsError(w, err)
 		return
@@ -186,6 +188,9 @@ func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 			if job.status == 413 {
 				reason = "file_too_large"
 			}
+			if job.status == 400 {
+				reason = "not a regular file"
+			}
 			writeError(w, job.status, reason)
 			return
 		}
@@ -243,7 +248,10 @@ func (s *Server) convertPreview(ctx context.Context, rel string, expected os.Fil
 		}
 	}
 	// Open only after admission to the conversion lane, always root-confined.
-	source, err := os.OpenInRoot(s.cfg.Root, rel)
+	source, err := openPreviewSource(s.cfg.Root, rel)
+	if errors.Is(err, errPreviewNotRegular) {
+		return 400, "", ""
+	}
 	if err != nil {
 		return 422, "", ""
 	}
