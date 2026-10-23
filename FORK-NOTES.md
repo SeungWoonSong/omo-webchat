@@ -148,3 +148,59 @@ password returns 401 without a Set-Cookie header.
 
 The owner's intended ID is `wonhyuk`, but stock webchat has only a password
 field. There is no username login field in this step.
+
+## Tailscale/front proxy
+
+The 2026-10-23 front-proxy deployment keeps the webchat process on
+`127.0.0.1:3102`. On whitening1, these root-owned units under
+`/etc/systemd/system` expose only `100.116.235.1:3102`:
+
+- `ai-portal-webchat-ujawhales-ts.socket`: `ListenStream=100.116.235.1:3102`,
+  `FreeBind=yes`, enabled under `sockets.target`.
+- `ai-portal-webchat-ujawhales-ts.service`: socket-activated
+  `/usr/lib/systemd/systemd-socket-proxyd 127.0.0.1:3102`, with `DynamicUser=yes`,
+  requiring and ordered after `ai-portal-webchat@ujawhales.service`.
+
+The socket has no wildcard, LAN, or public bind. `FreeBind=yes` allows it to
+start before Tailscale assigns the address. No Tailscale, ACL, or nft settings
+were changed. The comparison dashboard, `omo-usage-dashboard`, uses Docker
+host networking and its Python process listens on `127.0.0.1:8377`; its ens4
+Caddy configuration was not accessible and was not modified.
+
+The owner will point `ai.sungwoonsong.com` at `221.154.187.87`, the ens4 node
+(`100.105.223.66`). Its administrator must add and reload:
+
+```caddyfile
+ai.sungwoonsong.com {
+    reverse_proxy 100.116.235.1:3102
+}
+```
+
+Preserve the incoming Host and Origin; do not override Host to the upstream IP.
+`internal/wsbridge/bridge.go:303-320` accepts HTTP/HTTPS Origins whose host
+matches `r.Host` case-insensitively, including any explicit port. No extra
+header directive is needed. In particular, `https://ai.sungwoonsong.com` with
+`Host: ai.sungwoonsong.com` is accepted over the HTTP upstream connection.
+
+Known shared-lockout risk: `internal/api/router.go:179-185` identifies clients
+only by `RemoteAddr`; it never trusts `X-Forwarded-For`. With this TCP proxy,
+webchat sees `127.0.0.1` for every forwarded client (including local users).
+`internal/auth/auth.go:23-27,110-155` bans that IP for one hour after ten wrong
+passwords within a fixed one-hour window. The tenth failure returns 401;
+subsequent attempts return 429, even with the correct password, until the ban
+expires. A successful attempt before the ban resets the failure count. Merely
+adding X-Forwarded-For at Caddy will not separate clients. This behavior is
+documented, not changed.
+
+Local verification and reproducible browser checks are under
+`/home/lifening-dev/ai-website/.omo/evidence/uja-webchat-fork/tailscale/`.
+The browser check uses a temporary loopback forward proxy to send HTTP and
+native WebSocket upgrades to the Tailscale IP with the public Host, HTTPS
+Origin and forwarded scheme. HTTP and login returned 200; the authenticated
+WebSocket returned 101 and exchanged hello/pong, all with exit 0. It does not
+prove ens4 ingress, public DNS or
+TLS. No SSH access to ens4 was available; its Tailscale ping is reachability
+evidence only. Disable the new entry point, if needed, with
+`sudo systemctl disable --now ai-portal-webchat-ujawhales-ts.socket` followed
+by `sudo systemctl stop ai-portal-webchat-ujawhales-ts.service`; the original
+loopback webchat remains available.
