@@ -461,5 +461,20 @@
   "approval.question.commentLabel": "전체 코멘트",
   "chat.composer.paletteHintNavigate": "이동",
   "chat.composer.paletteHintSelect": "선택",
-  "chat.composer.paletteHintClose": "닫기"
+  "chat.composer.paletteHintClose": "닫기",
+  "viewer.title": "파일 미리보기",
+  "viewer.back": "뒤로 / 닫기",
+  "viewer.newTab": "새 탭에서 열기",
+  "viewer.edit": "편집",
+  "viewer.expand": "전체화면",
+  "viewer.shrink": "축소",
+  "viewer.raw": "원문",
+  "viewer.table": "표",
+  "viewer.zoom": "실제 크기로 확대",
+  "viewer.fit": "화면에 맞추기",
+  "viewer.unsupported": "미리보기 미지원 — 다운로드",
+  "viewer.size": "크기",
+  "viewer.modified": "수정 시간",
+  "viewer.rows": "처음 {n}행 · 100열까지 표시",
+  "viewer.zip": "ZIP 다운로드"
 }

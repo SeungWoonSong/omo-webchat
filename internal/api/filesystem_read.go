@@ -94,7 +94,7 @@ func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if info.IsDir() {
-		writeError(w, http.StatusBadRequest, "path is a directory")
+		s.handleZip(w, r, target)
 		return
 	}
 	f, err := os.Open(target)

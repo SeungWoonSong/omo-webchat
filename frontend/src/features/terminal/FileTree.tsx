@@ -46,7 +46,7 @@ function FileRow({ entry, dir, depth, locale, onOpenFile }: FileRowProps) {
         type="button"
         className="th-files-name th-files-name--link"
         data-file-path={joinPath(dir, entry.name)}
-        title={t("files.openEditor")}
+        title={t("viewer.title")}
         onClick={() => onOpenFile(entry.name, dir)}
       >
         {entry.name}
@@ -133,7 +133,11 @@ function FolderNode({ name, path, depth, locale, onOpenFile }: FolderNodeProps) 
         <button type="button" className="th-files-name th-files-name--dir" onClick={toggle}>
           {name}
         </button>
+        <button type="button" className="th-files-dl" aria-label={t("viewer.zip")} title={t("viewer.zip")} onClick={() => {
+          void apiDownload(downloadUrl(path), `${name}.zip`).catch((err: unknown) => setError(err instanceof Error ? err.message : t("files.error")));
+        }}><IconDownload size={13} /></button>
       </div>
+      {error && !expanded && <div className="th-files-childstatus th-files-childstatus--error" role="alert">{error}</div>}
       {expanded &&
         (loading ? (
           <div className="th-files-childstatus" style={childIndent}>

@@ -110,6 +110,7 @@ func (s *Server) Handler() http.Handler {
 	protected.HandleFunc("GET /api/fs/browse", s.handleBrowse)
 	protected.HandleFunc("GET /api/fs/list", s.handleList)
 	protected.HandleFunc("GET /api/fs/download", s.handleDownload)
+	protected.HandleFunc("GET /api/fs/raw", s.handleRaw)
 	protected.HandleFunc("GET /api/fs/read", s.handleReadFile)
 	protected.HandleFunc("GET /api/fs/search", s.handleSearch)
 	protected.HandleFunc("POST /api/fs/write", s.handleWriteFile)

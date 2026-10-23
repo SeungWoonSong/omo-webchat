@@ -4,7 +4,7 @@ import { useT } from "../../i18n";
 import { fsList, uploadFiles } from "./terminal";
 import { joinPath } from "../../lib/path";
 import type { FsList } from "./terminal";
-import { FileEditor } from "./FileEditor";
+import { FileViewer } from "./FileViewer";
 import type { FileEditorCloseRequest } from "./FileEditor";
 import { FileTree } from "./FileTree";
 import { IconAlert, IconUpload, IconX } from "../../components/icons";
@@ -25,6 +25,7 @@ export function FileBrowser({ path, wsId, tmId, onClose, notify, width, onWidthC
   const FILES_PANEL_MIN = 240;
   const FILES_PANEL_MAX = 720;
   const FILES_PANEL_KEY_STEP = 24;
+  const [expanded, setExpanded] = useState(false);
   const [data, setData] = useState<FsList | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -150,7 +151,7 @@ export function FileBrowser({ path, wsId, tmId, onClose, notify, width, onWidthC
   return (
     <aside
       ref={browserRef}
-      className={`th-files${dragOver ? " th-files--drag" : ""}`}
+      className={`th-files${expanded ? " th-files--expanded" : ""}${dragOver ? " th-files--drag" : ""}`}
       style={{ "--th-files-width": `${width}px` } as React.CSSProperties}
       onDragOver={(ev) => {
         ev.preventDefault();
@@ -161,6 +162,12 @@ export function FileBrowser({ path, wsId, tmId, onClose, notify, width, onWidthC
       }}
       onDrop={onDrop}
       onKeyDownCapture={(event) => {
+        if (event.key === "Tab") {
+          const controls = Array.from(browserRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], textarea, [tabindex="0"]') ?? []).filter(el => el.getClientRects().length > 0);
+          const first = controls[0]; const last = controls[controls.length - 1];
+          if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+          else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+        }
         if (event.key !== "Escape") return;
         event.preventDefault();
         event.stopPropagation();
@@ -197,7 +204,10 @@ export function FileBrowser({ path, wsId, tmId, onClose, notify, width, onWidthC
         </button>
       </div>
       {editing ? (
-        <FileEditor
+        <FileViewer
+          key={editing.path}
+          expanded={expanded}
+          onExpand={() => setExpanded(value => !value)}
           path={editing.path}
           name={editing.name}
           {...(closeRequest ? { requestClose: closeRequest } : {})}

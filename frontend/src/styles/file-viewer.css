@@ -1,0 +1,29 @@
+.th-files.th-files--expanded { width: 100%; }
+.th-viewer { display: flex; flex: 1; flex-direction: column; min-height: 0; min-width: 0; color: var(--th-text); }
+.th-viewer-toolbar { display: flex; flex-wrap: wrap; gap: var(--th-space-2); padding: var(--th-space-3); border-bottom: 1px solid var(--th-border); }
+.th-viewer-toolbar strong { width: 100%; overflow-wrap: anywhere; font-size: var(--th-type-label-size); }
+.th-viewer-toolbar .th-btn { min-height: 36px; white-space: normal; }
+.th-viewer-body { flex: 1; min-height: 0; min-width: 0; overflow: auto; padding: var(--th-space-3); }
+.th-viewer-body:has(> iframe) { display: flex; padding: 0; }
+.th-viewer-body iframe { width: 100%; height: 100%; min-height: 0; border: 0; background: var(--th-bg); }
+.th-viewer-body video, .th-viewer-body audio { width: 100%; max-height: 100%; }
+.th-viewer-image { display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; cursor: zoom-in; }
+.th-viewer-image img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.th-viewer-image--zoom { display: block; width: max-content; height: max-content; cursor: zoom-out; }
+.th-viewer-image--zoom img { max-width: none; max-height: none; }
+.th-viewer-source { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--th-font-mono); font-size: var(--th-type-secondary-size); }
+.th-viewer-markdown { overflow-wrap: anywhere; }
+.th-viewer-markdown img { max-width: 100%; height: auto; }
+.th-viewer-markdown pre, .th-viewer-markdown table { max-width: 100%; overflow: auto; display: block; }
+.th-viewer-table { overflow: auto; max-width: 100%; }
+.th-viewer-table table { border-collapse: collapse; }
+.th-viewer-table th, .th-viewer-table td { border: 1px solid var(--th-border); padding: var(--th-space-2); white-space: pre-wrap; overflow-wrap: anywhere; min-width: 80px; max-width: 320px; }
+.th-viewer-unsupported { text-align: center; padding: var(--th-space-5); overflow-wrap: anywhere; }
+.th-viewer-unsupported dl { display: grid; grid-template-columns: auto 1fr; gap: var(--th-space-2); text-align: left; }
+.th-viewer-unsupported dd { margin: 0; }
+@media (max-width: 600px) {
+  .th-files.th-files { position: fixed; inset: 0; width: 100%; max-width: 100%; z-index: 60; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+  .th-files-resize { display: none; }
+  .th-viewer-toolbar .th-btn, .th-files-head .th-btn-icon { min-height: 44px; }
+  .th-viewer-toolbar .th-viewer-expand { display: none; }
+}

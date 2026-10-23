@@ -102,6 +102,8 @@ describe("FileBrowser focus", () => {
     ));
     const row = container.querySelector<HTMLButtonElement>(".th-files-name--link");
     await act(async () => row?.click());
+    expect(container.querySelector(".th-editor-area")).toBeNull();
+    await act(async () => Array.from(container.querySelectorAll<HTMLButtonElement>(".th-viewer-toolbar button")).find(button => button.textContent === "Edit")?.click());
     const editor = container.querySelector<HTMLTextAreaElement>(".th-editor-area");
     if (!editor) throw new Error("File editor textarea is missing");
     act(() => {
@@ -132,6 +134,8 @@ describe("FileBrowser focus", () => {
     ));
     const row = container.querySelector<HTMLButtonElement>(".th-files-name--link");
     await act(async () => row?.click());
+    expect(container.querySelector(".th-editor-area")).toBeNull();
+    await act(async () => Array.from(container.querySelectorAll<HTMLButtonElement>(".th-viewer-toolbar button")).find(button => button.textContent === "Edit")?.click());
     const editor = container.querySelector<HTMLTextAreaElement>(".th-editor-area");
     if (!editor) throw new Error("File editor textarea is missing");
     act(() => {
@@ -141,6 +145,8 @@ describe("FileBrowser focus", () => {
     await act(async () => container.querySelector<HTMLButtonElement>(".th-editor-head .th-btn-icon")?.click());
     await act(async () => document.querySelector<HTMLButtonElement>('[role="dialog"] .th-btn--danger')?.click());
 
+    expect(container.querySelector(".th-viewer")).not.toBeNull();
+    await act(async () => Array.from(container.querySelectorAll<HTMLButtonElement>(".th-viewer-toolbar button")).find(button => button.textContent === "Back / Close")?.click());
     expect(document.activeElement).toBe(container.querySelector(".th-files-name--link"));
   });
 });
