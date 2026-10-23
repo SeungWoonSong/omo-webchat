@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useT } from "../../i18n";
+import { ApiError } from "../../lib/api";
 import { uploadFiles } from "../terminal/terminal";
 import type { ChatSessionRef } from "../workspace/workspace";
 
@@ -37,7 +38,7 @@ export function useFileAttachments(session: Pick<ChatSessionRef, "wsId" | "id"> 
         const path = paths[0];
         if (!path) throw new Error(t("toast.uploadFailed"));
         update(id, { path, progress: 100 }, epoch);
-      }).catch((err: unknown) => { if (!controller.signal.aborted) update(id, { error: err instanceof TypeError ? t("chat.uploadNetworkError") : err instanceof Error ? err.message : t("toast.uploadFailed") }, epoch); })
+      }).catch((err: unknown) => { if (!controller.signal.aborted) update(id, { error: err instanceof ApiError && err.status === 413 ? t("chat.uploadLimit") : err instanceof TypeError ? t("chat.uploadNetworkError") : err instanceof Error ? err.message : t("toast.uploadFailed") }, epoch); })
       .finally(() => { if (controllers.current.get(id) === controller) controllers.current.delete(id); });
   };
   return {

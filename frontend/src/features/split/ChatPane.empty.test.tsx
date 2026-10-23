@@ -36,3 +36,20 @@ it("inserts each empty-session suggestion, focuses the composer, never sends, an
   expect(steer?.firstElementChild?.textContent).toBe("chat.steerLabel");
   expect(steer?.querySelector(".th-chat-steer-text")?.textContent).toBe("More guidance");
 });
+
+for (const boundary of ["run.started", "streaming", "optimistic"] as const) it(`hides empty suggestions at the ${boundary} boundary before message content`, () => {
+  vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  const host = document.createElement("div"); document.body.append(host);
+  const root = createRoot(host);
+  cleanup = () => { act(() => root.unmount()); host.remove(); };
+  const { deliver } = renderChatPane(root);
+  act(() => deliver({ type: "entries", sessionId: "chat-1", entries: [], final: true }));
+  expect(host.querySelectorAll(".th-chat-suggestions button")).toHaveLength(4);
+  if (boundary === "run.started") act(() => deliver({ type: "run.started", sessionId: "chat-1" }));
+  else if (boundary === "streaming") act(() => deliver({ type: "state", sessionId: "chat-1", isStreaming: true, isCompacting: false }));
+  else act(() => {
+    setTextareaValue(host.querySelector("textarea")!, "First request");
+  });
+  if (boundary === "optimistic") act(() => host.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
+  expect(host.querySelector(".th-chat-session-empty")).toBeNull();
+});

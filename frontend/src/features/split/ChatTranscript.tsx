@@ -264,6 +264,7 @@ interface ChatTranscriptProps {
   /** Unified render list: conversation entries merged with notice blocks. */
   readonly items: readonly TranscriptItem[];
   readonly emptyState?: ReactNode;
+  readonly runActive?: boolean;
   /** Workspace/chat identity for lazy image_ref media fetches. */
   readonly mediaSource?: ChatMediaSource | undefined;
   readonly streaming: string;
@@ -291,6 +292,7 @@ export type OlderHistoryViewState = "idle" | "loading" | "error" | "complete" | 
 export function ChatTranscript({
   items,
   emptyState,
+  runActive = false,
   streaming,
   thinking,
   toolCalls,
@@ -1388,7 +1390,7 @@ export function ChatTranscript({
               )}
             </div>
           )}
-          {historyLoaded && items.length === 0 && !streaming && !thinking && Object.keys(toolCalls).length === 0 && !error && !historyFailedEmpty && emptyState}
+          {historyLoaded && items.length === 0 && !runActive && !streaming && !thinking && Object.keys(toolCalls).length === 0 && !error && !historyFailedEmpty && emptyState}
           {!historyLoaded && rows.length === 0 && !streaming && Object.keys(toolCalls).length === 0 && !error && !doneReason && (
             <div className="th-chat-loading" role="status">{t("chat.loading")}</div>
           )}

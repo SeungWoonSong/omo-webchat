@@ -686,6 +686,7 @@ function ChatPaneContent({
         <ChatTranscript
           items={transcriptItems}
           emptyState={<ChatSessionEmpty onSuggestion={text => setSuggestion({ text })} />}
+          runActive={chat.running || chat.sendRequests.some(request => request.phase !== "failed")}
           historyLoaded={chat.historyLoaded}
           streaming={chat.streaming}
           thinking={chat.thinking}

@@ -40,6 +40,7 @@ interface ChatComposerAttachmentProps {
   readonly imageSupported: boolean;
   readonly disabled?: boolean;
   readonly attachLabel: string;
+  readonly uploadLimit: string;
   readonly fileInputRef: RefObject<HTMLInputElement>;
   readonly onPick: (files: readonly File[]) => void;
 }
@@ -47,6 +48,7 @@ interface ChatComposerAttachmentProps {
 export function ChatComposerAttachment({
   disabled = false,
   attachLabel,
+  uploadLimit,
   fileInputRef,
   onPick,
 }: ChatComposerAttachmentProps) {
@@ -57,6 +59,8 @@ export function ChatComposerAttachment({
           type="button"
           className="th-btn-icon th-chat-attach-btn"
           aria-label={attachLabel}
+          title={`${attachLabel} — ${uploadLimit}`}
+          aria-description={uploadLimit}
           disabled={disabled}
           onClick={() => fileInputRef.current?.click()}
         >

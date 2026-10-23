@@ -324,8 +324,10 @@ export function ChatComposer({ session, suggestion, commands, running, blockingQ
             <button type="button" className="th-btn-icon" aria-label={t("chat.removeFile", { name: item.file.name })} onClick={() => attachments.remove(item.id)}><IconX size={14} /></button>
           </div>)}
         </div>
-        <span className="th-chat-file-limit">{t("chat.uploadLimit")}</span>
-        {isDragOver && <div className="th-chat-drop-hint" role="status">{t("chat.dropFiles")}</div>}
+        {isDragOver && <div className="th-chat-drop-hint" role="status">
+          {t("chat.dropFiles")}
+          <div className="th-chat-file-limit">{t("chat.uploadLimit")}</div>
+        </div>}
         {replyTarget && (replyMode || replyForced) && (
           <div className="th-chat-reply-label">
             <span className="th-chat-reply-label-text">
@@ -370,6 +372,7 @@ export function ChatComposer({ session, suggestion, commands, running, blockingQ
           imageSupported={imageSupported}
           disabled={disabled}
           attachLabel={t("chat.attach")}
+          uploadLimit={t("chat.uploadLimit")}
           fileInputRef={fileInputRef}
           onPick={pickFiles}
         />
