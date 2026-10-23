@@ -3,6 +3,7 @@ import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "re
 import { IconFolder, IconFolderOpen, IconMenu, IconMoreHorizontal, IconPower, IconSplitH, IconSplitV, IconX } from "../../components/icons";
 import { ErrorBoundary } from "../../components/ErrorBoundary";
 import { ModalDialog } from "../../components/ModalDialog";
+import { modalStack } from "../../components/modalStack";
 import type { ToastKind } from "../../components/SessionTree";
 import { useT } from "../../i18n";
 import type { ChatConnector } from "../../lib/chatWs";
@@ -206,6 +207,13 @@ function ChatPaneContent({
     const trigger = headerMenuTriggerRef.current;
     const anchor = headerMenuRef.current;
     if (!menu || !trigger || !anchor) return;
+    const unsubscribeModalStack = modalStack.subscribe(() => {
+      if (modalStack.size() === 0) return;
+      // Modal push already focused its dialog. Dismiss the top layer without
+      // returning focus to the menu trigger or covering the new modal.
+      menu.hidePopover?.();
+      setHeaderMenuOpen(false);
+    });
     const topLayer = typeof menu.showPopover === "function";
     if (topLayer) {
       // The top layer escapes the pane's overflow/container containing block
@@ -252,6 +260,8 @@ function ChatPaneContent({
     window.visualViewport?.addEventListener("resize", position);
     window.visualViewport?.addEventListener("scroll", position);
     return () => {
+      unsubscribeModalStack();
+      menu.hidePopover?.();
       observer?.disconnect();
       window.removeEventListener("resize", position);
       window.removeEventListener("scroll", onScroll, true);
